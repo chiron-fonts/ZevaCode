@@ -1,0 +1,179 @@
+name: Build and Release Fonts
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to create for this release
+        required: true
+        type: string
+      title:
+        description: Release title
+        required: true
+        type: string
+      release_notes:
+        description: Release notes (Markdown supported)
+        required: true
+        type: string
+      profile:
+        description: Optional single profile path, for example profiles/jetbrains-mono_static.yaml
+        required: false
+        type: string
+      variant:
+        description: Optional single variant selector, for example S or B
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Prepare source font directories
+        run: |
+          mkdir -p source_fonts/jetbrains_mono_vf
+          mkdir -p source_fonts/cascadia_code_vf
+          mkdir -p source_fonts/monaspace_vf
+          mkdir -p source_fonts/jetbrains_mono_static
+          mkdir -p source_fonts/cascadia_code_static
+          mkdir -p source_fonts/monaspace_static
+          mkdir -p embed_fonts/ZevHeiTC/VAR_TTF
+          mkdir -p embed_fonts/ZevHeiTC/VAR_OTF
+          mkdir -p out
+
+      - name: Download JetBrains Mono variable fonts
+        run: |
+          curl -fsSL "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip" -o /tmp/jetbrains_mono.zip
+          unzip -j /tmp/jetbrains_mono.zip \
+            'fonts/variable/JetBrainsMono\[wght\].ttf' \
+            'fonts/variable/JetBrainsMono-Italic\[wght\].ttf' \
+            -d source_fonts/jetbrains_mono_vf
+
+      - name: Download JetBrains Mono static fonts
+        run: |
+          unzip -j /tmp/jetbrains_mono.zip 'fonts/ttf/*.ttf' -d source_fonts/jetbrains_mono_static
+
+      - name: Download Cascadia Code variable fonts
+        run: |
+          curl -fsSL "https://github.com/microsoft/cascadia-code/releases/download/v2407.24/CascadiaCode-2407.24.zip" -o /tmp/cascadia_code.zip
+          unzip -j /tmp/cascadia_code.zip \
+            'ttf/CascadiaCode.ttf' \
+            'ttf/CascadiaCodeItalic.ttf' \
+            'ttf/CascadiaCodeNF.ttf' \
+            'ttf/CascadiaCodeNFItalic.ttf' \
+            'ttf/CascadiaCodePL.ttf' \
+            'ttf/CascadiaCodePLItalic.ttf' \
+            'ttf/CascadiaMono.ttf' \
+            'ttf/CascadiaMonoItalic.ttf' \
+            'ttf/CascadiaMonoNF.ttf' \
+            'ttf/CascadiaMonoNFItalic.ttf' \
+            'ttf/CascadiaMonoPL.ttf' \
+            'ttf/CascadiaMonoPLItalic.ttf' \
+            -d source_fonts/cascadia_code_vf
+
+      - name: Download Cascadia Code static fonts
+        run: |
+          unzip -j /tmp/cascadia_code.zip 'otf/static/*.otf' -d source_fonts/cascadia_code_static
+
+      - name: Download Monaspace variable fonts
+        run: |
+          curl -fsSL "https://github.com/githubnext/monaspace/releases/download/v1.400/monaspace-variable-v1.400.zip" -o /tmp/monaspace_variable.zip
+          unzip -j /tmp/monaspace_variable.zip 'Variable Fonts/*/*.ttf' -d source_fonts/monaspace_vf
+
+      - name: Download Monaspace static fonts
+        run: |
+          curl -fsSL "https://github.com/githubnext/monaspace/releases/download/v1.400/monaspace-static-v1.400.zip" -o /tmp/monaspace_static.zip
+          unzip -j /tmp/monaspace_static.zip 'Static Fonts/*/*.otf' -d source_fonts/monaspace_static
+
+      - name: Download Zev Hei TC sources
+        run: |
+          curl -fsSL "https://github.com/chiron-fonts/zev-hei-tc/raw/refs/heads/master/VAR_TTF/ZevHeiTC-N-VF.ttf" \
+            -o embed_fonts/ZevHeiTC/VAR_TTF/ZevHeiTC-N-VF.ttf
+          curl -fsSL "https://github.com/chiron-fonts/zev-hei-tc/raw/refs/heads/master/VAR_OTF/ZevHeiTC-N-VF.otf" \
+            -o embed_fonts/ZevHeiTC/VAR_OTF/ZevHeiTC-N-VF.otf
+
+      - name: Build fonts from profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ZEVCODE_CJK_CACHE_DIR="$(mktemp -d)"
+          trap 'rm -rf "$ZEVCODE_CJK_CACHE_DIR"' EXIT
+          if [[ -n "${{ inputs.profile }}" ]]; then
+            command=(python build_profile.py "${{ inputs.profile }}")
+            if [[ -n "${{ inputs.variant }}" ]]; then
+              command+=(--variant "${{ inputs.variant }}")
+            fi
+            "${command[@]}"
+          else
+            for profile in profiles/*.yaml; do
+              command=(python build_profile.py "$profile")
+              if [[ -n "${{ inputs.variant }}" ]]; then
+                command+=(--variant "${{ inputs.variant }}")
+              fi
+              "${command[@]}"
+            done
+          fi
+
+      - name: Zip static family outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p out/static
+          for dir in out/static/*/; do
+            family="${dir%/}"
+            family="${family##*/}"
+            (
+              cd out/static
+              otf_files=("${family}"/*.otf)
+              ttf_files=("${family}"/*.ttf)
+              if [[ ${#otf_files[@]} -gt 0 ]]; then
+                zip -q "${family}-Static_OTF.zip" "${otf_files[@]}"
+              fi
+              if [[ ${#ttf_files[@]} -gt 0 ]]; then
+                zip -q "${family}-Static_TTF.zip" "${ttf_files[@]}"
+              fi
+            )
+          done
+
+      - name: Upload built fonts as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-fonts
+          path: |
+            out/*.ttf
+            out/static/*.zip
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          printf '%s\n' "${{ inputs.release_notes }}" > /tmp/release-notes.md
+          assets=(out/*.ttf out/static/*.zip)
+          if [[ ${#assets[@]} -eq 0 ]]; then
+            echo "No release assets were produced." >&2
+            exit 1
+          fi
+          gh release create "${{ inputs.tag }}" "${assets[@]}" \
+            --title "${{ inputs.title }}" \
+            --notes-file /tmp/release-notes.md

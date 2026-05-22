@@ -1,0 +1,71 @@
+type: static
+cjk_font: embed_fonts/ZevHeiTC/VAR_OTF/ZevHeiTC-N-VF.otf
+blocks: assets/unicode_blocks.txt
+families:
+  - name: ZevCodeTC-CCD
+    source_prefix: CascadiaCode
+    source_postscript_name: CascadiaCode
+    source_family_name: Cascadia Code
+    ttf_companion: true
+    files:
+      - glob: source_fonts/cascadia_code_static/CascadiaCode-*.otf
+  - name: ZevCodeTC-CCN
+    source_prefix: CascadiaCodeNF
+    source_postscript_name: CascadiaCodeNF
+    source_family_name: Cascadia Code NF
+    ttf_companion: true
+    files:
+      - glob: source_fonts/cascadia_code_static/CascadiaCodeNF-*.otf
+  - name: ZevCodeTC-CCP
+    source_prefix: CascadiaCodePL
+    source_postscript_name: CascadiaCodePL
+    source_family_name: Cascadia Code PL
+    ttf_companion: true
+    files:
+      - glob: source_fonts/cascadia_code_static/CascadiaCodePL-*.otf
+  - name: ZevCodeTC-CMD
+    source_prefix: CascadiaMono
+    source_postscript_name: CascadiaMono
+    source_family_name: Cascadia Code Mono
+    ttf_companion: true
+    files:
+      - glob: source_fonts/cascadia_code_static/CascadiaMono-*.otf
+  - name: ZevCodeTC-CMN
+    source_prefix: CascadiaMonoNF
+    source_postscript_name: CascadiaMonoNF
+    source_family_name: Cascadia Code Mono NF
+    ttf_companion: true
+    files:
+      - glob: source_fonts/cascadia_code_static/CascadiaMonoNF-*.otf
+  - name: ZevCodeTC-CMP
+    source_prefix: CascadiaMonoPL
+    source_postscript_name: CascadiaMonoPL
+    source_family_name: Cascadia Code Mono PL
+    ttf_companion: true
+    files:
+      - glob: source_fonts/cascadia_code_static/CascadiaMonoPL-*.otf
+variants:
+  S:
+    cjk_axis: "wdth=100,IDSP=0"
+    cjk_transform: "2,0,0,2,0,5"
+    italic:
+      cjk_transform: "2,0,0.31676,2,0,5"
+  B:
+    # Monospace glyph width is 1200.
+    cjk_axis: "wdth=105,IDSP=150"
+    cjk_transform: "2,0,0,2,0,5"
+    italic:
+      cjk_transform: "2,0,0.31676,2,0,5"
+weights:
+  extralight:
+    cjk_axis_override: "wght=250"
+  light:
+    cjk_axis_override: "wght=320"
+  semilight:
+    cjk_axis_override: "wght=370"
+  regular:
+    cjk_axis_override: "wght=440"
+  semibold:
+    cjk_axis_override: "wght=600"
+  bold:
+    cjk_axis_override: "wght=700"

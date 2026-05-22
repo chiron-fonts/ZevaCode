@@ -1,0 +1,45 @@
+type: static
+cjk_font: embed_fonts/ZevHeiTC/VAR_OTF/ZevHeiTC-N-VF.otf
+blocks: assets/unicode_blocks.txt
+families:
+  - name: ZevCodeTC-MSA
+    source_prefix: MonaspaceArgon
+    source_postscript_name: MonaspaceArgon
+    source_family_name: Monaspace Argon
+    ttf_companion: true
+    files:
+      - glob: source_fonts/monaspace_static/MonaspaceArgon-*.otf
+  - name: ZevCodeTC-MSN
+    source_prefix: MonaspaceNeon
+    source_postscript_name: MonaspaceNeon
+    source_family_name: Monaspace Neon
+    ttf_companion: true
+    files:
+      - glob: source_fonts/monaspace_static/MonaspaceNeon-*.otf
+variants:
+  S:
+    cjk_axis: "wdth=100,IDSP=0"
+    cjk_transform: "2,0,0,2,0,5"
+    italic:
+      cjk_transform: "2,0,0.36,2,0,5"
+  B:
+    # Monospace glyph width is 1240 :\
+    cjk_axis: "wdth=105,IDSP=190"
+    cjk_transform: "2,0,0,2,0,5"
+    italic:
+      cjk_transform: "2,0,0.36,2,0,5"
+weights:
+  extralight:
+    cjk_axis_override: "wght=300"
+  light:
+    cjk_axis_override: "wght=365"
+  regular:
+    cjk_axis_override: "wght=450"
+  medium:
+    cjk_axis_override: "wght=550"
+  semibold:
+    cjk_axis_override: "wght=650"
+  bold:
+    cjk_axis_override: "wght=750"
+  extrabold:
+    cjk_axis_override: "wght=850"

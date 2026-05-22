@@ -1,0 +1,65 @@
+type: variable
+cjk_font: embed_fonts/ZevHeiTC/VAR_TTF/ZevHeiTC-N-VF.ttf
+blocks: assets/unicode_blocks.txt
+files:
+  - name: upright
+    target: source_fonts/cascadia_code_vf/CascadiaCode.ttf
+    family_code: CCD
+  - name: italic
+    target: source_fonts/cascadia_code_vf/CascadiaCodeItalic.ttf
+    family_code: CCD
+    italic: true
+
+  - name: upright
+    target: source_fonts/cascadia_code_vf/CascadiaCodeNF.ttf
+    family_code: CCN
+  - name: italic
+    target: source_fonts/cascadia_code_vf/CascadiaCodeNFItalic.ttf
+    family_code: CCN
+    italic: true
+
+  - name: upright
+    target: source_fonts/cascadia_code_vf/CascadiaCodePL.ttf
+    family_code: CCP
+  - name: italic
+    target: source_fonts/cascadia_code_vf/CascadiaCodePLItalic.ttf
+    italic: true
+    family_code: CCP
+
+  - name: upright
+    target: source_fonts/cascadia_code_vf/CascadiaMono.ttf
+    family_code: CMD
+  - name: italic
+    target: source_fonts/cascadia_code_vf/CascadiaMonoItalic.ttf
+    family_code: CMD
+    italic: true
+
+  - name: upright
+    target: source_fonts/cascadia_code_vf/CascadiaMonoNF.ttf
+    family_code: CMN
+  - name: italic
+    target: source_fonts/cascadia_code_vf/CascadiaMonoNFItalic.ttf
+    family_code: CMN
+    italic: true
+
+  - name: upright
+    target: source_fonts/cascadia_code_vf/CascadiaMonoPL.ttf
+    family_code: CMP
+  - name: italic
+    target: source_fonts/cascadia_code_vf/CascadiaMonoPLItalic.ttf
+    italic: true
+    family_code: CMP
+
+variants:
+  S:
+    cjk_low: "wght=200,wdth=100,IDSP=0"
+    cjk_high: "wght=650,wdth=100,IDSP=0"
+    cjk_transform: "2,0,0,2,0,5"
+    italic:
+      cjk_transform: "2,0,0.31676,2,0,5"
+  B:
+    cjk_low: "wght=200,wdth=105,IDSP=150"
+    cjk_high: "wght=650,wdth=105,IDSP=150"
+    cjk_transform: "2,0,0,2,0,5"
+    italic:
+      cjk_transform: "2,0,0.31676,2,0,5"

@@ -1,0 +1,121 @@
+{
+  "target_axes": [
+    "wght",
+    "wdth",
+    "slnt"
+  ],
+  "masters": [
+    {
+      "name": "default",
+      "target": {
+        "wght": 200,
+        "wdth": 100,
+        "slnt": 0
+      },
+      "cjk": {
+        "wght": 300,
+        "wdth": 105,
+        "IDSP": 190
+      },
+      "transform": [2, 0, 0, 2, 0, 5]
+    },
+    {
+      "name": "slnt",
+      "target": {
+        "wght": 200,
+        "wdth": 100,
+        "slnt": -11
+      },
+      "cjk": {
+        "wght": 300,
+        "wdth": 105,
+        "IDSP": 190
+      },
+      "transform": [2, 0, 0.36, 2, 0, 5]
+    },
+    {
+      "name": "wide",
+      "target": {
+        "wght": 200,
+        "wdth": 125,
+        "slnt": 0
+      },
+      "cjk": {
+        "wght": 300,
+        "wdth": 120,
+        "IDSP": 200
+      },
+      "transform": [2, 0, 0, 2, 0, 5]
+    },
+    {
+      "name": "bold",
+      "target": {
+        "wght": 800,
+        "wdth": 100,
+        "slnt": 0
+      },
+      "cjk": {
+        "wght": 700,
+        "wdth": 105,
+        "IDSP": 190
+      },
+      "transform": [2, 0, 0, 2, 0, 5]
+    },
+    {
+      "name": "wide-slnt",
+      "target": {
+        "wght": 200,
+        "wdth": 125,
+        "slnt": -11
+      },
+      "cjk": {
+        "wght": 700,
+        "wdth": 120,
+        "IDSP": 200
+      },
+      "transform": [2, 0, 0.36, 2, 0, 5]
+    },
+    {
+      "name": "bold-slnt",
+      "target": {
+        "wght": 800,
+        "wdth": 100,
+        "slnt": -11
+      },
+      "cjk": {
+        "wght": 700,
+        "wdth": 105,
+        "IDSP": 190
+      },
+      "transform": [2, 0, 0.36, 2, 0, 5]
+    },
+    {
+      "name": "bold-wide",
+      "target": {
+        "wght": 800,
+        "wdth": 125,
+        "slnt": 0
+      },
+      "cjk": {
+        "wght": 800,
+        "wdth": 120,
+        "IDSP": 200
+      },
+      "transform": [2, 0, 0, 2, 0, 5]
+    },
+    {
+      "name": "bold-wide-slnt",
+      "target": {
+        "wght": 800,
+        "wdth": 125,
+        "slnt": -11
+      },
+      "cjk": {
+        "wght": 800,
+        "wdth": 120,
+        "IDSP": 200
+      },
+      "transform": [2, 0, 0.36, 2, 0, 5]
+    }
+  ]
+}

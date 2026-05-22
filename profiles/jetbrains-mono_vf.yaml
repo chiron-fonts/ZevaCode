@@ -1,0 +1,22 @@
+type: variable
+cjk_font: embed_fonts/ZevHeiTC/VAR_TTF/ZevHeiTC-N-VF.ttf
+blocks: assets/unicode_blocks.txt
+files:
+  - name: upright
+    target: source_fonts/jetbrains_mono_vf/JetBrainsMono[wght].ttf
+    family_code: JBM
+  - name: italic
+    target: source_fonts/jetbrains_mono_vf/JetBrainsMono-Italic[wght].ttf
+    family_code: JBM
+    italic: true
+variants:
+  S:
+    cjk_low: "wght=200,wdth=100,IDSP=0"
+    cjk_high: "wght=800,wdth=100,IDSP=0"
+    italic:
+      cjk_transform: "1,0,0.15838,1,0,0"
+  B:
+    cjk_low: "wght=200,wdth=110,IDSP=100"
+    cjk_high: "wght=800,wdth=110,IDSP=100"
+    italic:
+      cjk_transform: "1,0,0.15838,1,0,0"
