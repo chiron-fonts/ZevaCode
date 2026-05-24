@@ -8,14 +8,40 @@ families:
     source_family_name: Monaspace Argon
     ttf_companion: true
     files:
-      - glob: source_fonts/monaspace_static/MonaspaceArgon-*.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-Regular.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-Italic.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-ExtraLight.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-ExtraLightItalic.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-Light.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-LightItalic.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-Medium.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-MediumItalic.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-SemiBold.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-SemiBoldItalic.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-Bold.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-BoldItalic.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-ExtraBold.otf
+      - source_fonts/monaspace_static/MonaspaceArgon-ExtraBoldItalic.otf
   - name: ZevCodeTC-MSN
     source_prefix: MonaspaceNeon
     source_postscript_name: MonaspaceNeon
     source_family_name: Monaspace Neon
     ttf_companion: true
     files:
-      - glob: source_fonts/monaspace_static/MonaspaceNeon-*.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-Regular.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-Italic.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-ExtraLight.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-ExtraLightItalic.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-Light.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-LightItalic.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-Medium.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-MediumItalic.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-SemiBold.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-SemiBoldItalic.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-Bold.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-BoldItalic.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-ExtraBold.otf
+      - source_fonts/monaspace_static/MonaspaceNeon-ExtraBoldItalic.otf
 variants:
   S:
     cjk_axis: "wdth=100,IDSP=0"

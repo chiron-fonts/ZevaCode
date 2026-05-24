@@ -1,0 +1,50 @@
+2190..21FF; Arrows
+2200..22FF; Mathematical Operators
+2300..23FF; Miscellaneous Technical
+2400..243F; Control Pictures
+2460..24FF; Enclosed Alphanumerics
+2500..257F; Box Drawing
+2580..259F; Block Elements
+25A0..25FF; Geometric Shapes
+2600..26FF; Miscellaneous Symbols
+2700..27BF; Dingbats
+2900..297F; Supplemental Arrows-B
+2980..29FF; Miscellaneous Mathematical Symbols-B
+2B00..2BFF; Miscellaneous Symbols and Arrows
+2E00..2E7F; Supplemental Punctuation
+2E80..2EFF; CJK Radicals Supplement
+2F00..2FDF; Kangxi Radicals
+2FF0..2FFF; Ideographic Description Characters
+3000..303F; CJK Symbols and Punctuation
+3040..309F; Hiragana
+30A0..30FF; Katakana
+3100..312F; Bopomofo
+3130..318F; Hangul Compatibility Jamo
+3190..319F; Kanbun
+31A0..31BF; Bopomofo Extended
+31C0..31EF; CJK Strokes
+31F0..31FF; Katakana Phonetic Extensions
+3200..32FF; Enclosed CJK Letters and Months
+3300..33FF; CJK Compatibility
+3400..4DBF; CJK Unified Ideographs Extension A
+4E00..9FFF; CJK Unified Ideographs
+A960..A97F; Hangul Jamo Extended-A
+AC00..D7AF; Hangul Syllables
+D7B0..D7FF; Hangul Jamo Extended-B
+F900..FAFF; CJK Compatibility Ideographs
+FE10..FE1F; Vertical Forms
+FE30..FE4F; CJK Compatibility Forms
+FE50..FE6F; Small Form Variants
+FF00..FFEF; Halfwidth and Fullwidth Forms
+1F100..1F1FF; Enclosed Alphanumeric Supplement
+1F200..1F2FF; Enclosed Ideographic Supplement
+20000..2A6DF; CJK Unified Ideographs Extension B
+2A700..2B73F; CJK Unified Ideographs Extension C
+2B740..2B81F; CJK Unified Ideographs Extension D
+2B820..2CEAF; CJK Unified Ideographs Extension E
+2CEB0..2EBEF; CJK Unified Ideographs Extension F
+2F800..2FA1F; CJK Compatibility Ideographs Supplement
+30000..3134F; CJK Unified Ideographs Extension G
+31350..323AF; CJK Unified Ideographs Extension H
+2EBF0..2EE5D; CJK Unified Ideographs Extension I
+323B0..3347B; CJK Unified Ideographs Extension J
