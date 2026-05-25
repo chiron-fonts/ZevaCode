@@ -201,7 +201,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: built-fonts-*
-          path: .
+          path: out
           merge-multiple: true
 
       - name: Zip static family outputs
