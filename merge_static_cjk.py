@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
+from time import monotonic
 
 from fontTools.pens.cu2quPen import Cu2QuPen
 from fontTools.pens.filterPen import DecomposingFilterPen
@@ -20,11 +21,10 @@ from merge_vf_cjk import (
     codepoint_string,
     ensure_directory_for,
     ensure_file_exists,
-    get_family_name,
+    format_elapsed,
+    log_status,
     refresh_unicode_coverage_metadata,
-    rename_output_font,
     save_report,
-    sanitize_postscript_name,
     sync_font_counters,
     unicode_cmap,
     update_unicode_cmaps,
@@ -191,6 +191,8 @@ def prepare_cjk_static_font(
     intervals: list[tuple[int, int]],
     blocks_path: Path,
 ) -> tuple[TTFont, dict[str, object]]:
+    preparation_start = monotonic()
+    log_status("Start loading and flattening CJK source...")
     cache_root_text = os.environ.get(CJK_CACHE_DIR_ENV, "").strip()
     flavor = outline_flavor_from_path(cjk_path)
     key_payload = cache_key_payload(cjk_path, blocks_path, axis_settings, flavor)
@@ -207,22 +209,24 @@ def prepare_cjk_static_font(
         cache_path = cached_cjk_path(cache_root, key_payload, cjk_path.suffix.lower())
         cache_info["path"] = str(cache_path)
         if cache_path.exists():
-            print(f"Using cached CJK resource: {cache_path}")
+            log_status(f"Using cached CJK resource: {cache_path}")
+            log_status(f"Finished loading and flattening CJK source ({format_elapsed(monotonic() - preparation_start)} elapsed)")
             return TTFont(cache_path), cache_info | {"hit": True}
 
     cjk_font = instantiate_cjk_static_font(cjk_path, axis_settings)
     block_glyph_names = collect_block_glyph_names(intervals, cjk_font)
     if block_glyph_names:
-        print(f"Flattening {len(block_glyph_names)} CJK glyphs for cache preparation...")
+        log_status(f"Flattening {len(block_glyph_names)} CJK glyphs for cache preparation...")
         removeOverlaps(cjk_font, glyphNames=block_glyph_names)
         if "glyf" in cjk_font:
-            print("Decomposing selected CJK source composites for cache preparation...")
+            log_status("Decomposing selected CJK source composites for cache preparation...")
             decomposed = decompose_selected_composites(cjk_font, block_glyph_names)
-            print(f"  decomposed {decomposed} composite glyphs")
+            log_status(f"decomposed {decomposed} composite glyphs")
         if cache_path is not None:
-            print(f"Saving cached CJK resource: {cache_path}")
+            log_status(f"Saving cached CJK resource: {cache_path}")
             save_font_atomic(cjk_font, cache_path)
 
+    log_status(f"Finished loading and flattening CJK source ({format_elapsed(monotonic() - preparation_start)} elapsed)")
     return cjk_font, cache_info
 
 
@@ -354,7 +358,8 @@ def build_static_report(
     blocks_path: Path,
     output_path: Path,
     report_path: Path,
-    output_family_name: str,
+    target_family_name: str | None,
+    target_postscript_name: str | None,
     cjk_axis: dict[str, float],
     transform,
     intervals: list[tuple[int, int]],
@@ -375,7 +380,8 @@ def build_static_report(
             "output": str(output_path),
             "companion_ttf_output": str(companion_ttf_output) if companion_ttf_output is not None else None,
             "report": str(report_path),
-            "font_name": output_family_name,
+            "target_family_name": target_family_name,
+            "target_postscript_name": target_postscript_name,
             "cjk_axis": cjk_axis,
             "cjk_transform": tuple(transform) if transform is not None else None,
             "cjk_cache": cache_info,
@@ -398,14 +404,14 @@ def replace_name_fragment(value: str, source: str | None, target: str) -> str:
 
 def rename_static_font_by_replacement(
     font: TTFont,
-    target_family_root: str,
     source_family_name: str | None,
+    target_family_name: str | None,
     source_postscript_name: str | None,
+    target_postscript_name: str | None,
 ) -> None:
     if "name" not in font:
         raise ValueError("Output font has no name table to update.")
 
-    target_postscript_root = sanitize_postscript_name(target_family_root)
     for record in font["name"].names:
         if record.nameID not in STATIC_NAME_REWRITE_IDS:
             continue
@@ -415,9 +421,9 @@ def rename_static_font_by_replacement(
             continue
         new_value = original_value
         if record.nameID in (1, 4, 16, 18, 21):
-            new_value = replace_name_fragment(new_value, source_family_name, target_family_root)
+            new_value = replace_name_fragment(new_value, source_family_name, target_family_name)
         if record.nameID in (3, 6, 25):
-            new_value = replace_name_fragment(new_value, source_postscript_name, target_postscript_root)
+            new_value = replace_name_fragment(new_value, source_postscript_name, target_postscript_name)
         if new_value != original_value:
             font["name"].setName(
                 new_value,
@@ -431,15 +437,25 @@ def rename_static_font_by_replacement(
         cff = font["CFF "].cff
         top_dict = cff.topDictIndex[0]
         cff.fontNames = [
-            replace_name_fragment(name, source_postscript_name, target_postscript_root)
+            replace_name_fragment(name, source_postscript_name, target_postscript_name)
             for name in cff.fontNames
         ]
         if hasattr(top_dict, "FamilyName"):
-            top_dict.FamilyName = replace_name_fragment(top_dict.FamilyName, source_family_name, target_family_root)
+            top_dict.FamilyName = replace_name_fragment(top_dict.FamilyName, source_family_name, target_family_name)
         if hasattr(top_dict, "FullName"):
-            top_dict.FullName = replace_name_fragment(top_dict.FullName, source_family_name, target_family_root)
+            top_dict.FullName = replace_name_fragment(top_dict.FullName, source_family_name, target_family_name)
         if hasattr(top_dict, "FontName"):
-            top_dict.FontName = replace_name_fragment(top_dict.FontName, source_postscript_name, target_postscript_root)
+            top_dict.FontName = replace_name_fragment(top_dict.FontName, source_postscript_name, target_postscript_name)
+
+
+def validate_replacement_args(args: argparse.Namespace) -> bool:
+    family_pair = (args.source_family_name, args.target_family_name)
+    postscript_pair = (args.source_postscript_name, args.target_postscript_name)
+    if bool(family_pair[0]) != bool(family_pair[1]):
+        raise ValueError("Static replacement requires both --source-family-name and --target-family-name together.")
+    if bool(postscript_pair[0]) != bool(postscript_pair[1]):
+        raise ValueError("Static replacement requires both --source-postscript-name and --target-postscript-name together.")
+    return any(value is not None for value in (*family_pair, *postscript_pair))
 
 
 def convert_cff_font_to_ttf(font: TTFont) -> TTFont:
@@ -516,14 +532,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out", required=True, help="Output merged static font path.")
     parser.add_argument("--report", required=True, help="Output JSON report path.")
     parser.add_argument("--ttf-out", default=None, help="Optional companion TTF output path for CFF-based static builds.")
-    parser.add_argument("--font-name", default=None, help="Override the output font family name.")
-    parser.add_argument("--weight-name", default=None, help="Optional static weight name to append to the family name.")
-    parser.add_argument("--style-name", default=None, help="Optional style name override, typically Regular or Italic.")
     parser.add_argument("--source-family-name", default=None, help="Static source family root to replace in relevant name records.")
+    parser.add_argument("--target-family-name", default=None, help="Replacement family root used for matched name records.")
     parser.add_argument(
         "--source-postscript-name",
         default=None,
         help="Static source PostScript root to replace in relevant PostScript/CFF name fields.",
+    )
+    parser.add_argument(
+        "--target-postscript-name",
+        default=None,
+        help="Replacement PostScript root used for matched PostScript/CFF name fields.",
     )
     parser.add_argument(
         "--cjk-transform",
@@ -534,6 +553,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    build_start = monotonic()
     args = parse_args()
 
     target_path = Path(args.target)
@@ -551,58 +571,61 @@ def main() -> None:
     intervals = parse_unicode_blocks(blocks_path)
     cjk_axis = parse_axis_settings(args.cjk_axis)
     transform = parse_transformation(args.cjk_transform)
+    use_replacement_naming = validate_replacement_args(args)
 
     target_font = TTFont(target_path)
     require_static_target_tables(target_font, target_path, "Target")
     preserved_x_avg_char_width = None
     if "OS/2" in target_font:
         preserved_x_avg_char_width = target_font["OS/2"].xAvgCharWidth
-    output_family_name = args.font_name or get_family_name(target_font)
-    use_replacement_naming = bool(args.source_family_name or args.source_postscript_name)
-    if args.weight_name and not use_replacement_naming:
-        output_family_name = f"{output_family_name} {args.weight_name}".strip()
-    output_style_name = args.style_name or ("Italic" if "Italic" in target_path.stem else "Regular")
 
-    print("Loading and instantiating CJK source...")
+    log_status("Start merging static font...")
     cjk_font, cache_info = prepare_cjk_static_font(cjk_path, cjk_axis, intervals, blocks_path)
 
-    print("Selecting candidate glyphs...")
+    candidate_start = monotonic()
+    log_status("Start selecting candidate glyphs...")
     candidates, counts = collect_static_candidates(intervals, target_font, cjk_font)
-    print(f"  considered: {counts['total_block_codepoints']}")
-    print(f"  insertable: {counts['inserted']}")
-    print(f"  skipped existing target cmap: {counts['existing_unicode']}")
-    print(f"  skipped existing target glyph name: {counts['existing_glyph_name']}")
-    print(f"  skipped missing in CJK: {counts['missing_in_cjk']}")
+    log_status(f"considered: {counts['total_block_codepoints']}")
+    log_status(f"insertable: {counts['inserted']}")
+    log_status(f"skipped existing target cmap: {counts['existing_unicode']}")
+    log_status(f"skipped existing target glyph name: {counts['existing_glyph_name']}")
+    log_status(f"skipped missing in CJK: {counts['missing_in_cjk']}")
+    log_status(f"Finished selecting candidate glyphs ({format_elapsed(monotonic() - candidate_start)} elapsed)")
 
-    print("Merging glyphs into static target...")
+    merge_start = monotonic()
+    log_status("Start merging glyphs into static target...")
     codepoint_to_glyph = merge_candidates_into_target(target_font, cjk_font, candidates, transform)
+    log_status(f"Finished merging glyphs into static target ({format_elapsed(monotonic() - merge_start)} elapsed)")
 
-    print("Renaming and saving output font...")
+    save_start = monotonic()
+    log_status("Start renaming and saving output font...")
     if use_replacement_naming:
         rename_static_font_by_replacement(
             target_font,
-            target_family_root=output_family_name,
             source_family_name=args.source_family_name,
+            target_family_name=args.target_family_name,
             source_postscript_name=args.source_postscript_name,
+            target_postscript_name=args.target_postscript_name,
         )
-    else:
-        rename_output_font(target_font, output_family_name, output_style_name)
     refresh_unicode_coverage_metadata(target_font, x_avg_char_width=preserved_x_avg_char_width)
     ensure_directory_for(output_path)
     target_font.save(output_path)
     if companion_ttf_output_path is not None:
         if output_path.suffix.lower() != ".otf":
             raise ValueError("Companion TTF output is only supported when the primary static output is OTF.")
-        print("Converting merged OTF to companion TTF...")
+        log_status("Converting merged OTF to companion TTF...")
         companion_ttf_font = convert_cff_font_to_ttf(target_font)
         ensure_directory_for(companion_ttf_output_path)
         companion_ttf_font.save(companion_ttf_output_path)
+    log_status(f"Finished renaming and saving output font ({format_elapsed(monotonic() - save_start)} elapsed)")
 
-    print("Validating output font...")
+    validate_start = monotonic()
+    log_status("Start validating output font...")
     validate_output_font(output_path, codepoint_to_glyph, target_path)
     if companion_ttf_output_path is not None:
-        print("Validating companion TTF font...")
+        log_status("Validating companion TTF font...")
         validate_output_font(companion_ttf_output_path, codepoint_to_glyph, target_path)
+    log_status(f"Finished validating output font ({format_elapsed(monotonic() - validate_start)} elapsed)")
 
     report = build_static_report(
         target_path=target_path,
@@ -610,7 +633,8 @@ def main() -> None:
         blocks_path=blocks_path,
         output_path=output_path,
         report_path=report_path,
-        output_family_name=output_family_name,
+        target_family_name=args.target_family_name,
+        target_postscript_name=args.target_postscript_name,
         cjk_axis=cjk_axis,
         transform=transform,
         intervals=intervals,
@@ -620,7 +644,8 @@ def main() -> None:
         companion_ttf_output=companion_ttf_output_path,
     )
     save_report(report, report_path)
-    print(f"Wrote report to {report_path}")
+    log_status(f"Wrote report to {report_path}")
+    log_status(f"Finished merging static font ({format_elapsed(monotonic() - build_start)} elapsed)")
 
 
 if __name__ == "__main__":

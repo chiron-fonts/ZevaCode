@@ -28,8 +28,73 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
+  plan-release:
     runs-on: ubuntu-latest
+    outputs:
+      shard_matrix: ${{ steps.plan.outputs.shard_matrix }}
+      shard_count: ${{ steps.plan.outputs.shard_count }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select release shards
+        id: plan
+        shell: bash
+        env:
+          INPUT_PROFILE: ${{ inputs.profile }}
+          INPUT_VARIANT: ${{ inputs.variant }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest_path = Path("assets/release_shards.json")
+          shards = json.loads(manifest_path.read_text(encoding="utf-8"))
+          if not isinstance(shards, list) or not shards:
+              raise SystemExit(f"Shard manifest is empty or invalid: {manifest_path}")
+
+          selected_profile = os.environ.get("INPUT_PROFILE", "").strip()
+          selected_variant = os.environ.get("INPUT_VARIANT", "").strip()
+          selected = []
+          for shard in shards:
+              if selected_profile and shard.get("profile") != selected_profile:
+                  continue
+              if selected_variant and shard.get("variant") != selected_variant:
+                  continue
+              selected.append(shard)
+
+          if not selected:
+              raise SystemExit(
+                  "No release shards match the requested profile/variant selection. "
+                  "Check the workflow inputs or assets/release_shards.json."
+              )
+
+          payload = json.dumps({"include": selected}, separators=(",", ":"))
+          github_output = Path(os.environ["GITHUB_OUTPUT"])
+          with github_output.open("a", encoding="utf-8") as handle:
+              print(f"shard_matrix={payload}", file=handle)
+              print(f"shard_count={len(selected)}", file=handle)
+
+          print(f"Selected {len(selected)} shard(s) from {manifest_path}:")
+          for shard in selected:
+              detail = [shard["profile"], f"variant={shard['variant']}"]
+              if shard.get("family"):
+                  detail.append(f"family={shard['family']}")
+              if shard.get("code"):
+                  detail.append(f"code={shard['code']}")
+              print(f"- {shard['id']}: {', '.join(detail)}")
+          PY
+
+  build-shards:
+    needs: plan-release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJson(needs.plan-release.outputs.shard_matrix) }}
 
     steps:
       - name: Check out repository
@@ -53,53 +118,43 @@ jobs:
           mkdir -p source_fonts/jetbrains_mono_static
           mkdir -p source_fonts/cascadia_code_static
           mkdir -p source_fonts/monaspace_static
+          mkdir -p source_fonts/mona_sans_static
           mkdir -p embed_fonts/ZevHeiTC/VAR_TTF
           mkdir -p embed_fonts/ZevHeiTC/VAR_OTF
           mkdir -p out
 
-      - name: Download JetBrains Mono variable fonts
+      - name: Download upstream fonts for shard
+        shell: bash
+        env:
+          SHARD_PROFILE: ${{ matrix.profile }}
         run: |
-          curl -fsSL "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip" -o /tmp/jetbrains_mono.zip
-          unzip -j /tmp/jetbrains_mono.zip \
-            'fonts/variable/JetBrainsMono\[wght\].ttf' \
-            'fonts/variable/JetBrainsMono-Italic\[wght\].ttf' \
-            -d source_fonts/jetbrains_mono_vf
-
-      - name: Download JetBrains Mono static fonts
-        run: |
-          unzip -j /tmp/jetbrains_mono.zip 'fonts/ttf/*.ttf' -d source_fonts/jetbrains_mono_static
-
-      - name: Download Cascadia Code variable fonts
-        run: |
-          curl -fsSL "https://github.com/microsoft/cascadia-code/releases/download/v2407.24/CascadiaCode-2407.24.zip" -o /tmp/cascadia_code.zip
-          unzip -j /tmp/cascadia_code.zip \
-            'ttf/CascadiaCode.ttf' \
-            'ttf/CascadiaCodeItalic.ttf' \
-            'ttf/CascadiaCodeNF.ttf' \
-            'ttf/CascadiaCodeNFItalic.ttf' \
-            'ttf/CascadiaCodePL.ttf' \
-            'ttf/CascadiaCodePLItalic.ttf' \
-            'ttf/CascadiaMono.ttf' \
-            'ttf/CascadiaMonoItalic.ttf' \
-            'ttf/CascadiaMonoNF.ttf' \
-            'ttf/CascadiaMonoNFItalic.ttf' \
-            'ttf/CascadiaMonoPL.ttf' \
-            'ttf/CascadiaMonoPLItalic.ttf' \
-            -d source_fonts/cascadia_code_vf
-
-      - name: Download Cascadia Code static fonts
-        run: |
-          unzip -j /tmp/cascadia_code.zip 'otf/static/*.otf' -d source_fonts/cascadia_code_static
-
-      - name: Download Monaspace variable fonts
-        run: |
-          curl -fsSL "https://github.com/githubnext/monaspace/releases/download/v1.400/monaspace-variable-v1.400.zip" -o /tmp/monaspace_variable.zip
-          unzip -j /tmp/monaspace_variable.zip 'Variable Fonts/*/*.ttf' -d source_fonts/monaspace_vf
-
-      - name: Download Monaspace static fonts
-        run: |
-          curl -fsSL "https://github.com/githubnext/monaspace/releases/download/v1.400/monaspace-static-v1.400.zip" -o /tmp/monaspace_static.zip
-          unzip -j /tmp/monaspace_static.zip 'Static Fonts/*/*.otf' -d source_fonts/monaspace_static
+          set -euo pipefail
+          case "$SHARD_PROFILE" in
+            profiles/jetbrains-mono_vf.yaml|profiles/jetbrains-mono_static.yaml)
+              curl -fsSL "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip" -o /tmp/jetbrains_mono.zip
+              unzip -j /tmp/jetbrains_mono.zip \
+                'fonts/variable/JetBrainsMono\[wght\].ttf' \
+                'fonts/variable/JetBrainsMono-Italic\[wght\].ttf' \
+                -d source_fonts/jetbrains_mono_vf
+              unzip -j /tmp/jetbrains_mono.zip 'fonts/ttf/*.ttf' -d source_fonts/jetbrains_mono_static
+              ;;
+            profiles/cascadia-code_static.yaml)
+              curl -fsSL "https://github.com/microsoft/cascadia-code/releases/download/v2407.24/CascadiaCode-2407.24.zip" -o /tmp/cascadia_code.zip
+              unzip -j /tmp/cascadia_code.zip 'otf/static/*.otf' -d source_fonts/cascadia_code_static
+              ;;
+            profiles/monaspace_static.yaml)
+              curl -fsSL "https://github.com/githubnext/monaspace/releases/download/v1.400/monaspace-static-v1.400.zip" -o /tmp/monaspace_static.zip
+              unzip -j /tmp/monaspace_static.zip 'Static Fonts/*/*.otf' -d source_fonts/monaspace_static
+              ;;
+            profiles/mona-sans-mono_static.yaml|profiles/mona-sans-mono-semicondensed_static.yaml)
+              curl -fsSL "https://github.com/github/mona-sans/releases/download/v2.0.27/mona-sans-static-v2.0.27.zip" -o /tmp/mona_sans_static.zip
+              unzip -j /tmp/mona_sans_static.zip 'fonts/static/otf/MonaSansMono*.otf' -d source_fonts/mona_sans_static
+              ;;
+            *)
+              echo "Unsupported shard profile: $SHARD_PROFILE" >&2
+              exit 1
+              ;;
+          esac
 
       - name: Download Zev Hei TC sources
         run: |
@@ -108,27 +163,46 @@ jobs:
           curl -fsSL "https://github.com/chiron-fonts/zev-hei-tc/raw/refs/heads/master/VAR_OTF/ZevHeiTC-N-VF.otf" \
             -o embed_fonts/ZevHeiTC/VAR_OTF/ZevHeiTC-N-VF.otf
 
-      - name: Build fonts from profiles
+      - name: Build shard
         shell: bash
+        env:
+          SHARD_PROFILE: ${{ matrix.profile }}
+          SHARD_VARIANT: ${{ matrix.variant }}
+          SHARD_FAMILY: ${{ matrix.family }}
+          SHARD_CODE: ${{ matrix.code }}
         run: |
           set -euo pipefail
           export ZEVCODE_CJK_CACHE_DIR="$(mktemp -d)"
           trap 'rm -rf "$ZEVCODE_CJK_CACHE_DIR"' EXIT
-          if [[ -n "${{ inputs.profile }}" ]]; then
-            command=(python build_profile.py "${{ inputs.profile }}")
-            if [[ -n "${{ inputs.variant }}" ]]; then
-              command+=(--variant "${{ inputs.variant }}")
-            fi
-            "${command[@]}"
-          else
-            for profile in profiles/*.yaml; do
-              command=(python build_profile.py "$profile")
-              if [[ -n "${{ inputs.variant }}" ]]; then
-                command+=(--variant "${{ inputs.variant }}")
-              fi
-              "${command[@]}"
-            done
+          command=(python build_profile.py "$SHARD_PROFILE" --variant "$SHARD_VARIANT")
+          if [[ -n "$SHARD_FAMILY" ]]; then
+            command+=(--family "$SHARD_FAMILY")
           fi
+          if [[ -n "$SHARD_CODE" ]]; then
+            command+=(--code "$SHARD_CODE")
+          fi
+          "${command[@]}"
+
+      - name: Upload shard outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-fonts-${{ matrix.id }}
+          path: out
+          if-no-files-found: error
+
+  assemble-release:
+    needs:
+      - plan-release
+      - build-shards
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download shard outputs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: built-fonts-*
+          path: .
+          merge-multiple: true
 
       - name: Zip static family outputs
         shell: bash
@@ -152,7 +226,7 @@ jobs:
             )
           done
 
-      - name: Upload built fonts as artifacts
+      - name: Upload packaged fonts as artifacts
         uses: actions/upload-artifact@v4
         with:
           name: built-fonts

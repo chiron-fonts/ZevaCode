@@ -2,23 +2,30 @@ type: static
 cjk_font: embed_fonts/ZevHeiTC/VAR_TTF/ZevHeiTC-N-VF.ttf
 blocks: assets/unicode_blocks.txt
 families:
-  - name: ZevCodeTC-JBM
-    source_prefix: JetBrainsMono
+  - directory_name: ZevCodeTC-JBM
+    source_filename_prefix: JetBrainsMono
+    target_filename_prefix: ZevCodeTC-JBM-{variant}
     source_postscript_name: JetBrainsMono
+    target_postscript_name: ZevCodeTC-JBM-{variant}
     source_family_name: JetBrains Mono
+    target_family_name: ZevCodeTC-JBM-{variant}
     files:
       - glob: source_fonts/jetbrains_mono_static/JetBrainsMono-*.ttf
-#  - name: ZevCodeTC-JBMNL
-#    source_prefix: JetBrainsMonoNL
-#    source_postscript_name: JetBrainsMonoNL
-#    source_family_name: JetBrains Mono NL
-#    files:
-#      - glob: source_fonts/jetbrains_mono_static/JetBrainsMonoNL-*.ttf
+  - skip: true
+    directory_name: ZevCodeTC-JBMNL
+    source_filename_prefix: JetBrainsMonoNL
+    target_filename_prefix: ZevCodeTC-JBMNL-{variant}
+    source_postscript_name: JetBrainsMonoNL
+    target_postscript_name: ZevCodeTC-JBMNL-{variant}
+    source_family_name: JetBrains Mono NL
+    target_family_name: ZevCodeTC-JBMNL-{variant}
+    files:
+      - glob: source_fonts/jetbrains_mono_static/JetBrainsMonoNL-*.ttf
 variants:
-#  S:
-#    cjk_axis: "wdth=100,IDSP=0"
-#    italic:
-#      cjk_transform: "1,0,0.15838,1,0,0"
+  S:
+    cjk_axis: "wdth=100,IDSP=0"
+    italic:
+      cjk_transform: "1,0,0.15838,1,0,0"
   B:
     # Monospace glyph width is 600.
     cjk_axis: "wdth=105,IDSP=150"

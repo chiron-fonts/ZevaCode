@@ -2,10 +2,13 @@ type: static
 cjk_font: embed_fonts/ZevHeiTC/VAR_OTF/ZevHeiTC-N-VF.otf
 blocks: assets/unicode_blocks.txt
 families:
-  - name: ZevCodeTC-MSA
-    source_prefix: MonaspaceArgon
+  - directory_name: ZevCodeTC-GMA
+    target_filename_prefix: ZevCodeTC-GMA-{variant}
+    source_filename_prefix: MonaspaceArgon
     source_postscript_name: MonaspaceArgon
+    target_postscript_name: ZevCodeTC-GMA-{variant}
     source_family_name: Monaspace Argon
+    target_family_name: ZevCodeTC-GMA-{variant}
     ttf_companion: true
     files:
       - source_fonts/monaspace_static/MonaspaceArgon-Regular.otf
@@ -22,10 +25,13 @@ families:
       - source_fonts/monaspace_static/MonaspaceArgon-BoldItalic.otf
       - source_fonts/monaspace_static/MonaspaceArgon-ExtraBold.otf
       - source_fonts/monaspace_static/MonaspaceArgon-ExtraBoldItalic.otf
-  - name: ZevCodeTC-MSN
-    source_prefix: MonaspaceNeon
+  - directory_name: ZevCodeTC-GMN
+    target_filename_prefix: ZevCodeTC-GMN-{variant}
+    source_filename_prefix: MonaspaceNeon
     source_postscript_name: MonaspaceNeon
+    target_postscript_name: ZevCodeTC-GMN-{variant}
     source_family_name: Monaspace Neon
+    target_family_name: ZevCodeTC-GMN-{variant}
     ttf_companion: true
     files:
       - source_fonts/monaspace_static/MonaspaceNeon-Regular.otf

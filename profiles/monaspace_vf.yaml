@@ -1,22 +1,23 @@
+skip: true
 type: variable
 cjk_font: embed_fonts/ZevHeiTC/VAR_TTF/ZevHeiTC-N-VF.ttf
 blocks: assets/unicode_blocks.txt
 files:
   - name: argon
     target: source_fonts/monaspace_vf/Monaspace Argon Var.ttf
-    family_code: MSA
+    family_code: GMA
   - name: xenon
     target: source_fonts/monaspace_vf/Monaspace Xenon Var.ttf
-    family_code: MSX
+    family_code: GMX
   - name: neon
     target: source_fonts/monaspace_vf/Monaspace Neon Var.ttf
-    family_code: MSN
+    family_code: GMN
   - name: krypton
     target: source_fonts/monaspace_vf/Monaspace Krypton Var.ttf
-    family_code: MSK
+    family_code: GMK
   - name: radon
     target: source_fonts/monaspace_vf/Monaspace Radon Var.ttf
-    family_code: MSR
+    family_code: GMR
 variants:
   S:
     master_config: master_config/monaspace-s.json

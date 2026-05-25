@@ -1,3 +1,4 @@
+skip: true
 type: variable
 cjk_font: embed_fonts/ZevHeiTC/VAR_TTF/ZevHeiTC-N-VF.ttf
 blocks: assets/unicode_blocks.txt

@@ -2,45 +2,68 @@ type: static
 cjk_font: embed_fonts/ZevHeiTC/VAR_OTF/ZevHeiTC-N-VF.otf
 blocks: assets/unicode_blocks.txt
 families:
-  - name: ZevCodeTC-CCD
-    source_prefix: CascadiaCode
+  - directory_name: ZevCodeTC-CCD
+    source_filename_prefix: CascadiaCode
+    target_filename_prefix: ZevCodeTC-CCD-{variant}
     source_postscript_name: CascadiaCode
+    target_postscript_name: ZevCodeTC-CCD-{variant}
     source_family_name: Cascadia Code
+    target_family_name: ZevCodeTC-CCD-{variant}
     ttf_companion: true
     files:
       - glob: source_fonts/cascadia_code_static/CascadiaCode-*.otf
-  - name: ZevCodeTC-CCN
-    source_prefix: CascadiaCodeNF
+  - skip: true
+    directory_name: ZevCodeTC-CCN
+    source_filename_prefix: CascadiaCodeNF
+    target_filename_prefix: ZevCodeTC-CCN-{variant}
     source_postscript_name: CascadiaCodeNF
+    target_postscript_name: ZevCodeTC-CCN-{variant}
     source_family_name: Cascadia Code NF
+    target_family_name: ZevCodeTC-CCN-{variant}
     ttf_companion: true
+
     files:
       - glob: source_fonts/cascadia_code_static/CascadiaCodeNF-*.otf
-  - name: ZevCodeTC-CCP
-    source_prefix: CascadiaCodePL
+  - skip: true
+    directory_name: ZevCodeTC-CCP
+    source_filename_prefix: CascadiaCodePL
+    target_filename_prefix: ZevCodeTC-CCP-{variant}
     source_postscript_name: CascadiaCodePL
+    target_postscript_name: ZevCodeTC-CCP-{variant}
     source_family_name: Cascadia Code PL
+    target_family_name: ZevCodeTC-CCP-{variant}
     ttf_companion: true
     files:
       - glob: source_fonts/cascadia_code_static/CascadiaCodePL-*.otf
-  - name: ZevCodeTC-CMD
-    source_prefix: CascadiaMono
+  - directory_name: ZevCodeTC-CMD
+    source_filename_prefix: CascadiaMono
+    target_filename_prefix: ZevCodeTC-CMD-{variant}
     source_postscript_name: CascadiaMono
+    target_postscript_name: ZevCodeTC-CMD-{variant}
     source_family_name: Cascadia Code Mono
+    target_family_name: ZevCodeTC-CMD-{variant}
     ttf_companion: true
     files:
       - glob: source_fonts/cascadia_code_static/CascadiaMono-*.otf
-  - name: ZevCodeTC-CMN
-    source_prefix: CascadiaMonoNF
+  - skip: true
+    directory_name: ZevCodeTC-CMN
+    source_filename_prefix: CascadiaMonoNF
+    target_filename_prefix: ZevCodeTC-CMN-{variant}
     source_postscript_name: CascadiaMonoNF
+    target_postscript_name: ZevCodeTC-CMN-{variant}
     source_family_name: Cascadia Code Mono NF
+    target_family_name: ZevCodeTC-CMN-{variant}
     ttf_companion: true
     files:
       - glob: source_fonts/cascadia_code_static/CascadiaMonoNF-*.otf
-  - name: ZevCodeTC-CMP
-    source_prefix: CascadiaMonoPL
+  - skip: true
+    directory_name: ZevCodeTC-CMP
+    source_filename_prefix: CascadiaMonoPL
+    target_filename_prefix: ZevCodeTC-CMP-{variant}
     source_postscript_name: CascadiaMonoPL
+    target_postscript_name: ZevCodeTC-CMP-{variant}
     source_family_name: Cascadia Code Mono PL
+    target_family_name: ZevCodeTC-CMP-{variant}
     ttf_companion: true
     files:
       - glob: source_fonts/cascadia_code_static/CascadiaMonoPL-*.otf

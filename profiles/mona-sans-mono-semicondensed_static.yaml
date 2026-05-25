@@ -1,0 +1,35 @@
+type: static
+cjk_font: embed_fonts/ZevHeiTC/VAR_OTF/ZevHeiTC-N-VF.otf
+blocks: assets/unicode_blocks.txt
+families:
+  - directory_name: ZevCodeTC-MSM-SemiCondensed
+    source_filename_prefix: MonaSansMonoSemiCondensed
+    target_filename_prefix: ZevCodeTC-MSM-{variant}-SemiCondensed
+    source_postscript_name: MonaSansMonoSemiCondensed
+    target_postscript_name: ZevCodeTC-MSM-{variant}-SemiCondensed
+    source_family_name: Mona Sans Mono SemiCondensed
+    target_family_name: ZevCodeTC-MSM-{variant} SemiCondensed
+    ttf_companion: true
+    files:
+      - glob: source_fonts/mona_sans_static/MonaSansMonoSemiCondensed-*.otf
+variants:
+  B:
+    # Monospace glyph width is 504.
+    cjk_axis: "wdth=100,IDSP=8"
+weights:
+  extralight:
+    cjk_axis_override: "wght=200"
+  light:
+    cjk_axis_override: "wght=300"
+  regular:
+    cjk_axis_override: "wght=400"
+  medium:
+    cjk_axis_override: "wght=500"
+  semibold:
+    cjk_axis_override: "wght=600"
+  bold:
+    cjk_axis_override: "wght=700"
+  extrabold:
+    cjk_axis_override: "wght=800"
+  black:
+    cjk_axis_override: "wght=900"

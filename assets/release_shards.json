@@ -1,0 +1,107 @@
+[
+  {
+    "id": "jetbrains-mono-vf-s",
+    "profile": "profiles/jetbrains-mono_vf.yaml",
+    "variant": "S",
+    "family": "",
+    "code": "JBM"
+  },
+  {
+    "id": "jetbrains-mono-vf-b",
+    "profile": "profiles/jetbrains-mono_vf.yaml",
+    "variant": "B",
+    "family": "",
+    "code": "JBM"
+  },
+  {
+    "id": "jetbrains-mono-static-s",
+    "profile": "profiles/jetbrains-mono_static.yaml",
+    "variant": "S",
+    "family": "ZevCodeTC-JBM",
+    "code": ""
+  },
+  {
+    "id": "jetbrains-mono-static-b",
+    "profile": "profiles/jetbrains-mono_static.yaml",
+    "variant": "B",
+    "family": "ZevCodeTC-JBM",
+    "code": ""
+  },
+  {
+    "id": "cascadia-code-static-ccd-s",
+    "profile": "profiles/cascadia-code_static.yaml",
+    "variant": "S",
+    "family": "ZevCodeTC-CCD",
+    "code": ""
+  },
+  {
+    "id": "cascadia-code-static-ccd-b",
+    "profile": "profiles/cascadia-code_static.yaml",
+    "variant": "B",
+    "family": "ZevCodeTC-CCD",
+    "code": ""
+  },
+  {
+    "id": "cascadia-code-static-cmd-s",
+    "profile": "profiles/cascadia-code_static.yaml",
+    "variant": "S",
+    "family": "ZevCodeTC-CMD",
+    "code": ""
+  },
+  {
+    "id": "cascadia-code-static-cmd-b",
+    "profile": "profiles/cascadia-code_static.yaml",
+    "variant": "B",
+    "family": "ZevCodeTC-CMD",
+    "code": ""
+  },
+  {
+    "id": "mona-sans-mono-static-s",
+    "profile": "profiles/mona-sans-mono_static.yaml",
+    "variant": "S",
+    "family": "ZevCodeTC-MSM",
+    "code": ""
+  },
+  {
+    "id": "mona-sans-mono-static-b",
+    "profile": "profiles/mona-sans-mono_static.yaml",
+    "variant": "B",
+    "family": "ZevCodeTC-MSM",
+    "code": ""
+  },
+  {
+    "id": "mona-sans-mono-semicondensed-static-b",
+    "profile": "profiles/mona-sans-mono-semicondensed_static.yaml",
+    "variant": "B",
+    "family": "ZevCodeTC-MSM-SemiCondensed",
+    "code": ""
+  },
+  {
+    "id": "monaspace-static-gma-s",
+    "profile": "profiles/monaspace_static.yaml",
+    "variant": "S",
+    "family": "ZevCodeTC-GMA",
+    "code": ""
+  },
+  {
+    "id": "monaspace-static-gma-b",
+    "profile": "profiles/monaspace_static.yaml",
+    "variant": "B",
+    "family": "ZevCodeTC-GMA",
+    "code": ""
+  },
+  {
+    "id": "monaspace-static-gmn-s",
+    "profile": "profiles/monaspace_static.yaml",
+    "variant": "S",
+    "family": "ZevCodeTC-GMN",
+    "code": ""
+  },
+  {
+    "id": "monaspace-static-gmn-b",
+    "profile": "profiles/monaspace_static.yaml",
+    "variant": "B",
+    "family": "ZevCodeTC-GMN",
+    "code": ""
+  }
+]

@@ -2,12 +2,15 @@ import argparse
 import copy
 import json
 import tempfile
+from datetime import datetime
 from pathlib import Path
+from time import monotonic
 
 from fontTools import varLib
 from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument, SourceDescriptor
 from fontTools.misc.transform import Transform
 from fontTools.ttLib import TTFont
+from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
 from fontTools.varLib.errors import VarLibValidationError
 from fontTools.varLib.instancer import instantiateVariableFont
 
@@ -15,6 +18,17 @@ from extract_font import decompose_composites, parse_axis_settings, parse_transf
 
 TEMPORARY_MASTER_STRIP_TABLES = ("GSUB", "GPOS", "GDEF")
 RESTORED_TARGET_TABLES = ("GDEF", "GPOS", "GSUB", "avar", "STAT", "name", "fvar")
+
+
+def format_elapsed(elapsed_seconds: float) -> str:
+    total_seconds = max(0, int(round(elapsed_seconds)))
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours}h{minutes:02}m{seconds:02}s"
+
+
+def log_status(message: str) -> None:
+    print(f"[{datetime.now():%Y-%m-%d %H:%M}] {message}")
 
 
 def parse_unicode_blocks(path: Path) -> list[tuple[int, int]]:
@@ -244,8 +258,39 @@ def build_unicode_subtable_index(font: TTFont) -> tuple[list, list]:
     return bmp_tables, all_unicode_tables
 
 
+def create_unicode_format12_subtable(platform_id: int, plat_enc_id: int):
+    table = CmapSubtable.newSubtable(12)
+    table.platformID = platform_id
+    table.platEncID = plat_enc_id
+    table.language = 0
+    table.cmap = {}
+    return table
+
+
+def ensure_unicode_format12_subtables(font: TTFont) -> list:
+    cmap_table = font["cmap"]
+    format12_tables = [table for table in cmap_table.tables if table.isUnicode() and table.format == 12]
+    if format12_tables:
+        return format12_tables
+
+    existing_unicode_mappings = unicode_cmap(font)
+    format12_tables = [
+        create_unicode_format12_subtable(platform_id=0, plat_enc_id=4),
+        create_unicode_format12_subtable(platform_id=3, plat_enc_id=10),
+    ]
+    for table in format12_tables:
+        table.cmap.update(existing_unicode_mappings)
+    cmap_table.tables.extend(format12_tables)
+    return format12_tables
+
+
 def update_unicode_cmaps(font: TTFont, mappings: dict[int, str]) -> None:
     bmp_tables, all_unicode_tables = build_unicode_subtable_index(font)
+    if any(codepoint > 0xFFFF for codepoint in mappings):
+        format12_tables = [table for table in all_unicode_tables if table.format == 12]
+        if not format12_tables:
+            format12_tables = ensure_unicode_format12_subtables(font)
+            all_unicode_tables.extend(format12_tables)
     for codepoint, glyph_name in mappings.items():
         target_tables = all_unicode_tables
         if codepoint <= 0xFFFF:
@@ -714,6 +759,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    build_start = monotonic()
     args = parse_args()
 
     target_path = Path(args.target)
@@ -756,7 +802,9 @@ def main() -> None:
             default_transform=default_transform,
         )
 
-    print("Loading and instantiating target masters...")
+    log_status("Start merging variable font...")
+    target_load_start = monotonic()
+    log_status("Start loading and instantiating target masters...")
     target_fonts = {}
     for master_spec in master_specs:
         master_name = master_spec["name"]
@@ -765,8 +813,10 @@ def main() -> None:
             master_spec["target"],
             f"Target {master_name}",
         )
+    log_status(f"Finished loading and instantiating target masters ({format_elapsed(monotonic() - target_load_start)} elapsed)")
 
-    print("Loading and instantiating CJK masters...")
+    cjk_prepare_start = monotonic()
+    log_status("Start loading and preparing CJK masters...")
     cjk_fonts = {}
     for master_spec in master_specs:
         master_name = master_spec["name"]
@@ -776,29 +826,38 @@ def main() -> None:
             f"CJK {master_name}",
         )
 
-    print("Decomposing CJK composite glyphs...")
+    log_status("Decomposing CJK composite glyphs...")
     for name, font in cjk_fonts.items():
         decomposed = decompose_composites(font, verbose=False)
-        print(f"  {name}: decomposed {decomposed} composite glyphs")
+        log_status(f"{name}: decomposed {decomposed} composite glyphs")
+    log_status(f"Finished loading and preparing CJK masters ({format_elapsed(monotonic() - cjk_prepare_start)} elapsed)")
 
-    print("Selecting candidate glyphs...")
+    candidate_start = monotonic()
+    log_status("Start selecting candidate glyphs...")
     candidates, counts = collect_candidate_data(intervals, target_font, cjk_fonts)
-    print(f"  considered: {counts['total_block_codepoints']}")
-    print(f"  present in all CJK masters: {counts['present_in_all_cjk_masters']}")
-    print(f"  insertable: {counts['inserted']}")
-    print(f"  skipped existing target cmap: {counts['existing_unicode']}")
-    print(f"  skipped existing target glyph name: {counts['existing_glyph_name']}")
-    print(f"  skipped missing in CJK: {counts['missing_in_cjk']}")
-    print(f"  skipped source name mismatch: {counts['source_name_mismatch']}")
+    log_status(f"considered: {counts['total_block_codepoints']}")
+    log_status(f"present in all CJK masters: {counts['present_in_all_cjk_masters']}")
+    log_status(f"insertable: {counts['inserted']}")
+    log_status(f"skipped existing target cmap: {counts['existing_unicode']}")
+    log_status(f"skipped existing target glyph name: {counts['existing_glyph_name']}")
+    log_status(f"skipped missing in CJK: {counts['missing_in_cjk']}")
+    log_status(f"skipped source name mismatch: {counts['source_name_mismatch']}")
+    log_status(f"Finished selecting candidate glyphs ({format_elapsed(monotonic() - candidate_start)} elapsed)")
 
-    print("Merging glyphs into target masters...")
+    merge_start = monotonic()
+    log_status("Start merging glyphs into target masters...")
     codepoint_to_glyph = merge_candidates_into_targets(candidates, target_fonts, master_specs, cjk_fonts)
+    log_status(f"Finished merging glyphs into target masters ({format_elapsed(monotonic() - merge_start)} elapsed)")
 
-    print("Rebuilding output variable font...")
+    rebuild_start = monotonic()
+    log_status("Start rebuilding output variable font...")
     rebuild_variable_font(target_font, master_specs, target_fonts, output_path, output_family_name)
+    log_status(f"Finished rebuilding output variable font ({format_elapsed(monotonic() - rebuild_start)} elapsed)")
 
-    print("Validating output font...")
+    validate_start = monotonic()
+    log_status("Start validating output font...")
     validate_output_font(output_path, codepoint_to_glyph, target_path)
+    log_status(f"Finished validating output font ({format_elapsed(monotonic() - validate_start)} elapsed)")
 
     report = build_report(
         target_path=target_path,
@@ -815,8 +874,9 @@ def main() -> None:
     )
     save_report(report, report_path)
 
-    print(f"Saved merged VF to {output_path}")
-    print(f"Saved merge report to {report_path}")
+    log_status(f"Saved merged VF to {output_path}")
+    log_status(f"Saved merge report to {report_path}")
+    log_status(f"Finished merging variable font ({format_elapsed(monotonic() - build_start)} elapsed)")
 
 
 if __name__ == "__main__":
