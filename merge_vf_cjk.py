@@ -14,7 +14,15 @@ from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
 from fontTools.varLib.errors import VarLibValidationError
 from fontTools.varLib.instancer import instantiateVariableFont
 
-from extract_font import decompose_composites, parse_axis_settings, parse_transformation
+from extract_font import (
+    decompose_composites,
+    parse_axis_settings,
+    parse_normalize_width_json,
+    parse_transformation,
+    plan_width_normalization,
+    preferred_normalized_width,
+    serialize_normalize_width_rules,
+)
 
 TEMPORARY_MASTER_STRIP_TABLES = ("GSUB", "GPOS", "GDEF")
 RESTORED_TARGET_TABLES = ("GDEF", "GPOS", "GSUB", "avar", "STAT", "name", "fvar")
@@ -379,23 +387,32 @@ def transform_inserted_glyph(
     source_font: TTFont,
     glyph_name: str,
     transform: Transform | None,
+    metrics: tuple[int, int] | None = None,
+    normalize_shift_x: int = 0,
 ) -> tuple[object, tuple[int, int]]:
     source_glyph = source_font["glyf"][glyph_name]
-    advance_width, lsb = source_font["hmtx"][glyph_name]
-    if transform is None:
-        return copy.deepcopy(source_glyph), copy.deepcopy(source_font["hmtx"][glyph_name])
+    metric_source = copy.deepcopy(metrics or source_font["hmtx"][glyph_name])
+    advance_width, lsb = metric_source
+    if transform is None and not normalize_shift_x:
+        return copy.deepcopy(source_glyph), metric_source
 
     from fontTools.pens.transformPen import TransformPen
     from fontTools.pens.ttGlyphPen import TTGlyphPen
 
     glyph_set = source_font.getGlyphSet()
     pen = TTGlyphPen(glyph_set)
-    transform_pen = TransformPen(pen, transform)
-    glyph_set[glyph_name].draw(transform_pen)
+    draw_pen = pen
+    if transform is not None:
+        draw_pen = TransformPen(draw_pen, transform)
+    if normalize_shift_x:
+        draw_pen = TransformPen(draw_pen, Transform(1, 0, 0, 1, normalize_shift_x, 0))
+    glyph_set[glyph_name].draw(draw_pen)
     transformed_glyph = pen.glyph()
     if hasattr(transformed_glyph, "recalcBounds"):
         transformed_glyph.recalcBounds(source_font["glyf"])
 
+    if transform is None:
+        return transformed_glyph, metric_source
     transformed_lsb = int(round(lsb * transform.xx + transform.dx))
     transformed_advance_width = max(0, int(round(advance_width * transform.xx)))
     return transformed_glyph, (transformed_advance_width, transformed_lsb)
@@ -576,26 +593,63 @@ def collect_candidate_data(
     return candidates, counts
 
 
+def build_master_normalization_action(master_name: str, normalization: dict[str, object]) -> dict[str, object]:
+    return {
+        "name": master_name,
+        "status": normalization["status"],
+        "reason": normalization["reason"],
+        "original_advance_width": normalization["original_advance_width"],
+        "final_advance_width": normalization["final_advance_width"],
+        "shift_x": normalization["shift_x"],
+    }
+
+
 def merge_candidates_into_targets(
     candidates: list[dict[str, str | int]],
     target_fonts: dict[str, TTFont],
     master_specs: list[dict],
     cjk_fonts: dict[str, TTFont],
-) -> dict[int, str]:
+    normalize_width_rules: list[dict[str, object]],
+) -> tuple[dict[int, str], dict[str, int], list[dict[str, object]]]:
     codepoint_to_glyph: dict[int, str] = {}
     appended_glyphs: set[str] = set()
+    glyph_preferred_widths: dict[str, int | None] = {}
+    glyph_normalization_actions: dict[str, dict[str, dict[str, object] | None]] = {}
+    normalization_counts = {
+        "matched_codepoints": 0,
+        "processed_master_actions": 0,
+        "skipped_master_actions": 0,
+    }
+    normalization_actions: list[dict[str, object]] = []
     for candidate in candidates:
         codepoint = int(candidate["codepoint"])
         glyph_name = str(candidate["glyph_name"])
+        preferred_width = preferred_normalized_width(codepoint, normalize_width_rules)
+        if glyph_name in glyph_preferred_widths and glyph_preferred_widths[glyph_name] != preferred_width:
+            raise ValueError(
+                f"Glyph {glyph_name!r} is referenced by multiple codepoints with conflicting normalize_width rules."
+            )
+        if glyph_name not in glyph_preferred_widths:
+            glyph_preferred_widths[glyph_name] = preferred_width
         if glyph_name not in appended_glyphs:
+            per_master_normalization: dict[str, dict[str, object] | None] = {}
             for master_spec in master_specs:
                 master_name = master_spec["name"]
                 target_font = target_fonts[master_name]
                 source_font = cjk_fonts[master_name]
+                normalization = plan_width_normalization(source_font["hmtx"][glyph_name], preferred_width)
+                per_master_normalization[master_name] = normalization
+                metrics = source_font["hmtx"][glyph_name]
+                normalize_shift_x = 0
+                if normalization is not None:
+                    metrics = (normalization["final_advance_width"], normalization["final_lsb"])
+                    normalize_shift_x = int(normalization["shift_x"])
                 transformed_glyph, transformed_metrics = transform_inserted_glyph(
                     source_font,
                     glyph_name,
                     master_spec["transform"],
+                    metrics=metrics,
+                    normalize_shift_x=normalize_shift_x,
                 )
                 append_new_glyph(
                     target_font,
@@ -603,13 +657,33 @@ def merge_candidates_into_targets(
                     transformed_glyph,
                     transformed_metrics,
                 )
+            glyph_normalization_actions[glyph_name] = per_master_normalization
             appended_glyphs.add(glyph_name)
+        if preferred_width is not None:
+            normalization_counts["matched_codepoints"] += 1
+            action_entry = {
+                "codepoint": codepoint_string(codepoint),
+                "glyph_name": glyph_name,
+                "preferred_width": preferred_width,
+                "masters": [],
+            }
+            for master_spec in master_specs:
+                master_name = master_spec["name"]
+                normalization = glyph_normalization_actions[glyph_name][master_name]
+                if normalization is None:
+                    continue
+                if normalization["status"] == "processed":
+                    normalization_counts["processed_master_actions"] += 1
+                else:
+                    normalization_counts["skipped_master_actions"] += 1
+                action_entry["masters"].append(build_master_normalization_action(master_name, normalization))
+            normalization_actions.append(action_entry)
         codepoint_to_glyph[codepoint] = glyph_name
 
     for target_font in target_fonts.values():
         update_unicode_cmaps(target_font, codepoint_to_glyph)
         sync_font_counters(target_font)
-    return codepoint_to_glyph
+    return codepoint_to_glyph, normalization_counts, normalization_actions
 
 
 def rebuild_variable_font(
@@ -664,9 +738,12 @@ def build_report(
     report_path: Path,
     output_family_name: str,
     master_specs: list[dict],
+    normalize_width_rules: list[dict[str, object]],
     intervals: list[tuple[int, int]],
     counts: dict[str, int],
     codepoint_to_glyph: dict[int, str],
+    normalization_counts: dict[str, int],
+    normalization_actions: list[dict[str, object]],
     rebuild_master_note: str,
 ) -> dict:
     inserted = [
@@ -681,6 +758,7 @@ def build_report(
             "output": str(output_path),
             "report": str(report_path),
             "font_name": output_family_name,
+            "normalize_width": serialize_normalize_width_rules(normalize_width_rules) or None,
         },
         "interval_count": len(intervals),
         "masters": [
@@ -694,6 +772,10 @@ def build_report(
         ],
         "counts": counts,
         "inserted": inserted,
+        "normalize_width": {
+            "counts": normalization_counts,
+            "actions": normalization_actions,
+        },
         "notes": {
             "rebuild": rebuild_master_note,
             "gsub_gpos_policy": "Target GSUB and GPOS tables are preserved from the target master workflow and are not augmented for inserted glyphs.",
@@ -755,6 +837,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help='Optional affine transform for inserted CJK glyphs as "a,b,c,d,e,f", for example "2,0,0,2,0,5".',
     )
+    parser.add_argument(
+        "--normalize-width",
+        default=None,
+        help="Optional JSON normalize_width configuration forwarded from the profile wrapper.",
+    )
     return parser.parse_args()
 
 
@@ -778,6 +865,7 @@ def main() -> None:
 
     intervals = parse_unicode_blocks(blocks_path)
     default_transform = parse_transformation(args.cjk_transform)
+    normalize_width_rules = parse_normalize_width_json(args.normalize_width)
 
     target_font = TTFont(target_path)
     require_tables(target_font, target_path, "Target", ("glyf", "hmtx", "cmap", "fvar"))
@@ -846,7 +934,17 @@ def main() -> None:
 
     merge_start = monotonic()
     log_status("Start merging glyphs into target masters...")
-    codepoint_to_glyph = merge_candidates_into_targets(candidates, target_fonts, master_specs, cjk_fonts)
+    codepoint_to_glyph, normalization_counts, normalization_actions = merge_candidates_into_targets(
+        candidates,
+        target_fonts,
+        master_specs,
+        cjk_fonts,
+        normalize_width_rules,
+    )
+    if normalize_width_rules:
+        log_status(f"normalize_width matched codepoints: {normalization_counts['matched_codepoints']}")
+        log_status(f"normalize_width processed master actions: {normalization_counts['processed_master_actions']}")
+        log_status(f"normalize_width skipped master actions: {normalization_counts['skipped_master_actions']}")
     log_status(f"Finished merging glyphs into target masters ({format_elapsed(monotonic() - merge_start)} elapsed)")
 
     rebuild_start = monotonic()
@@ -867,9 +965,12 @@ def main() -> None:
         report_path=report_path,
         output_family_name=output_family_name,
         master_specs=master_specs,
+        normalize_width_rules=normalize_width_rules,
         intervals=intervals,
         counts=counts,
         codepoint_to_glyph=codepoint_to_glyph,
+        normalization_counts=normalization_counts,
+        normalization_actions=normalization_actions,
         rebuild_master_note=rebuild_master_note,
     )
     save_report(report, report_path)

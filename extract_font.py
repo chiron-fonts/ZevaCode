@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 
 from fontTools.misc.transform import Transform
@@ -43,6 +44,149 @@ def parse_transformation(s: str):
         return Transform(*[float(p) for p in parts])
     except ValueError:
         raise ValueError(f"Invalid float value in transformation: {s}")
+
+
+def merge_codepoint_ranges(ranges):
+    if not ranges:
+        return []
+    merged = []
+    for start, end in sorted(ranges):
+        if not merged or start > merged[-1][1] + 1:
+            merged.append((start, end))
+            continue
+        merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+    return merged
+
+
+def parse_codepoint_value(value, label: str) -> int:
+    if isinstance(value, int):
+        codepoint = value
+    elif isinstance(value, str):
+        text = value.strip()
+        if not text:
+            raise ValueError(f"{label} must not be empty.")
+        if text.upper().startswith("U+"):
+            text = text[2:]
+        try:
+            codepoint = int(text, 16)
+        except ValueError as exc:
+            raise ValueError(f"{label} must be a hexadecimal codepoint; got {value!r}") from exc
+    else:
+        raise ValueError(f"{label} must be a hexadecimal string or integer; got {value!r}")
+    if not 0 <= codepoint <= 0x10FFFF:
+        raise ValueError(f"{label} must be within the Unicode range; got {codepoint!r}")
+    return codepoint
+
+
+def parse_normalize_width_payload(payload, label: str = "normalize_width"):
+    if payload is None:
+        return []
+    if not isinstance(payload, list):
+        raise ValueError(f"{label} must be a list of normalization rules.")
+
+    rules = []
+    occupied_ranges = []
+    for index, entry in enumerate(payload):
+        entry_label = f"{label}[{index}]"
+        if not isinstance(entry, dict):
+            raise ValueError(f"{entry_label} must be a mapping.")
+        if "codepoints" not in entry or "width" not in entry:
+            raise ValueError(f"{entry_label} must define both codepoints and width.")
+
+        raw_ranges = entry["codepoints"]
+        if not isinstance(raw_ranges, list) or not raw_ranges:
+            raise ValueError(f"{entry_label}.codepoints must be a non-empty list of [start, end] ranges.")
+        ranges = []
+        for range_index, raw_range in enumerate(raw_ranges):
+            range_label = f"{entry_label}.codepoints[{range_index}]"
+            if not isinstance(raw_range, (list, tuple)) or len(raw_range) != 2:
+                raise ValueError(f"{range_label} must be a two-item [start, end] range.")
+            start = parse_codepoint_value(raw_range[0], f"{range_label}[0]")
+            end = parse_codepoint_value(raw_range[1], f"{range_label}[1]")
+            if start > end:
+                raise ValueError(f"{range_label} start must not exceed end.")
+            ranges.append((start, end))
+        ranges = merge_codepoint_ranges(ranges)
+
+        width = entry["width"]
+        if isinstance(width, float):
+            if not width.is_integer():
+                raise ValueError(f"{entry_label}.width must be an integer.")
+            width = int(width)
+        elif not isinstance(width, int):
+            raise ValueError(f"{entry_label}.width must be an integer.")
+        if width <= 0:
+            raise ValueError(f"{entry_label}.width must be greater than zero.")
+
+        for start, end in ranges:
+            for existing_start, existing_end in occupied_ranges:
+                if start <= existing_end and existing_start <= end:
+                    raise ValueError(
+                        f"{entry_label}.codepoints overlaps an earlier normalize_width range: "
+                        f"{start:04X}..{end:04X} overlaps {existing_start:04X}..{existing_end:04X}"
+                    )
+            occupied_ranges.append((start, end))
+
+        rules.append({"codepoints": ranges, "width": width})
+    return rules
+
+
+def parse_normalize_width_json(value: str | None, label: str = "--normalize-width"):
+    if not value:
+        return []
+    try:
+        payload = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} must be valid JSON.") from exc
+    return parse_normalize_width_payload(payload, label)
+
+
+def serialize_normalize_width_rules(rules):
+    return [
+        {
+            "codepoints": [[start, end] for start, end in rule["codepoints"]],
+            "width": rule["width"],
+        }
+        for rule in rules
+    ]
+
+
+def preferred_normalized_width(codepoint: int, rules) -> int | None:
+    for rule in rules:
+        for start, end in rule["codepoints"]:
+            if start <= codepoint <= end:
+                return rule["width"]
+    return None
+
+
+def plan_width_normalization(metrics: tuple[int, int], preferred_width: int | None):
+    if preferred_width is None:
+        return None
+
+    advance_width, lsb = metrics
+    if advance_width >= preferred_width:
+        return {
+            "status": "skipped",
+            "reason": "width-already-sufficient",
+            "preferred_width": preferred_width,
+            "original_advance_width": advance_width,
+            "final_advance_width": advance_width,
+            "original_lsb": lsb,
+            "final_lsb": lsb,
+            "shift_x": 0,
+        }
+
+    shift_x = (preferred_width - advance_width) // 2
+    return {
+        "status": "processed",
+        "reason": None,
+        "preferred_width": preferred_width,
+        "original_advance_width": advance_width,
+        "final_advance_width": preferred_width,
+        "original_lsb": lsb,
+        "final_lsb": lsb + shift_x,
+        "shift_x": shift_x,
+    }
 
 
 def decompose_composites(font: TTFont, verbose: bool = True) -> int:

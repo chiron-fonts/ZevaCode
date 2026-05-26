@@ -1,5 +1,6 @@
 import argparse
 import copy
+import json
 import os
 import shlex
 import subprocess
@@ -11,7 +12,7 @@ from time import monotonic
 
 import yaml
 
-from extract_font import parse_axis_settings
+from extract_font import parse_axis_settings, parse_normalize_width_payload, serialize_normalize_width_rules
 
 
 REPO_ROOT = Path(__file__).resolve().parent
@@ -170,6 +171,17 @@ def build_variable_merge_command(
             command.extend(["--cjk-default", merged_variant["cjk_default"]])
         if merged_variant.get("cjk_transform"):
             command.extend(["--cjk-transform", merged_variant["cjk_transform"]])
+    normalize_width_rules = parse_normalize_width_payload(
+        merged_variant.get("normalize_width"),
+        label=f"variants.{variant_name}.normalize_width",
+    )
+    if normalize_width_rules:
+        command.extend(
+            [
+                "--normalize-width",
+                json.dumps(serialize_normalize_width_rules(normalize_width_rules), separators=(",", ":")),
+            ]
+        )
 
     return command
 
@@ -477,6 +489,17 @@ def build_static_merge_command(
         )
     if merged_variant.get("cjk_transform"):
         command.extend(["--cjk-transform", merged_variant["cjk_transform"]])
+    normalize_width_rules = parse_normalize_width_payload(
+        merged_variant.get("normalize_width"),
+        label=f"variants.{variant_name}.normalize_width",
+    )
+    if normalize_width_rules:
+        command.extend(
+            [
+                "--normalize-width",
+                json.dumps(serialize_normalize_width_rules(normalize_width_rules), separators=(",", ":")),
+            ]
+        )
     return command
 
 

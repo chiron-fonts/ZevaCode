@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 from time import monotonic
 
+from fontTools.misc.transform import Transform
 from fontTools.pens.cu2quPen import Cu2QuPen
 from fontTools.pens.filterPen import DecomposingFilterPen
 from fontTools.pens.t2CharStringPen import T2CharStringPen
@@ -16,7 +17,14 @@ from fontTools.ttLib import TTFont, newTable
 from fontTools.ttLib.removeOverlaps import removeOverlaps
 from fontTools.varLib.instancer import instantiateVariableFont
 
-from extract_font import parse_axis_settings, parse_transformation
+from extract_font import (
+    parse_axis_settings,
+    parse_normalize_width_json,
+    parse_transformation,
+    plan_width_normalization,
+    preferred_normalized_width,
+    serialize_normalize_width_rules,
+)
 from merge_vf_cjk import (
     codepoint_string,
     ensure_directory_for,
@@ -276,15 +284,25 @@ def transform_metrics(metrics: tuple[int, int], transform) -> tuple[int, int]:
     return transformed_advance_width, transformed_lsb
 
 
-def build_inserted_ttf_glyph(source_font: TTFont, glyph_name: str, transform):
+def build_inserted_ttf_glyph(
+    source_font: TTFont,
+    glyph_name: str,
+    transform,
+    metrics: tuple[int, int] | None = None,
+    normalize_shift_x: int = 0,
+):
     glyph_set = source_font.getGlyphSet()
     pen = TTGlyphPen(glyph_set)
-    draw_pen = TransformPen(pen, transform) if transform is not None else pen
+    draw_pen = pen
+    if transform is not None:
+        draw_pen = TransformPen(draw_pen, transform)
+    if normalize_shift_x:
+        draw_pen = TransformPen(draw_pen, Transform(1, 0, 0, 1, normalize_shift_x, 0))
     glyph_set[glyph_name].draw(draw_pen)
     glyph = pen.glyph()
     if hasattr(glyph, "recalcBounds"):
         glyph.recalcBounds(source_font["glyf"])
-    metrics = transform_metrics(source_font["hmtx"][glyph_name], transform)
+    metrics = transform_metrics(metrics or source_font["hmtx"][glyph_name], transform)
     return glyph, metrics
 
 
@@ -297,13 +315,22 @@ def append_ttf_glyph(font: TTFont, glyph_name: str, glyph, metrics: tuple[int, i
     sync_font_counters(font)
 
 
-def build_inserted_cff_charstring(source_font: TTFont, glyph_name: str, transform):
+def build_inserted_cff_charstring(
+    source_font: TTFont,
+    glyph_name: str,
+    transform,
+    metrics: tuple[int, int] | None = None,
+    normalize_shift_x: int = 0,
+):
     glyph_set = source_font.getGlyphSet()
-    metrics = transform_metrics(source_font["hmtx"][glyph_name], transform)
     pen = T2CharStringPen(None, glyph_set)
-    draw_pen = TransformPen(pen, transform) if transform is not None else pen
+    draw_pen = pen
+    if transform is not None:
+        draw_pen = TransformPen(draw_pen, transform)
+    if normalize_shift_x:
+        draw_pen = TransformPen(draw_pen, Transform(1, 0, 0, 1, normalize_shift_x, 0))
     glyph_set[glyph_name].draw(draw_pen)
-    return pen, metrics
+    return pen, transform_metrics(metrics or source_font["hmtx"][glyph_name], transform)
 
 
 def append_cff_glyph(font: TTFont, glyph_name: str, pen: T2CharStringPen, metrics: tuple[int, int]) -> None:
@@ -328,28 +355,77 @@ def append_cff_glyph(font: TTFont, glyph_name: str, pen: T2CharStringPen, metric
     sync_font_counters(font)
 
 
+def build_normalization_action_entry(codepoint: int, glyph_name: str, normalization) -> dict[str, object]:
+    return {
+        "codepoint": codepoint_string(codepoint),
+        "glyph_name": glyph_name,
+        "status": normalization["status"],
+        "reason": normalization["reason"],
+        "preferred_width": normalization["preferred_width"],
+        "original_advance_width": normalization["original_advance_width"],
+        "final_advance_width": normalization["final_advance_width"],
+        "shift_x": normalization["shift_x"],
+    }
+
+
 def merge_candidates_into_target(
     target_font: TTFont,
     cjk_font: TTFont,
     candidates: list[dict[str, int | str]],
     transform,
-) -> dict[int, str]:
+    normalize_width_rules: list[dict[str, object]],
+) -> tuple[dict[int, str], dict[str, int], list[dict[str, object]]]:
     codepoint_to_glyph = {}
     appended_glyphs: set[str] = set()
+    glyph_normalization: dict[str, dict[str, object] | None] = {}
+    glyph_preferred_widths: dict[str, int | None] = {}
+    normalization_counts = {"matched": 0, "processed": 0, "skipped": 0}
+    normalization_actions: list[dict[str, object]] = []
     for candidate in candidates:
         codepoint = int(candidate["codepoint"])
         glyph_name = str(candidate["glyph_name"])
+        preferred_width = preferred_normalized_width(codepoint, normalize_width_rules)
+        if glyph_name in glyph_preferred_widths and glyph_preferred_widths[glyph_name] != preferred_width:
+            raise ValueError(
+                f"Glyph {glyph_name!r} is referenced by multiple codepoints with conflicting normalize_width rules."
+            )
+        if glyph_name not in glyph_preferred_widths:
+            glyph_preferred_widths[glyph_name] = preferred_width
+        normalization = glyph_normalization.get(glyph_name)
+        if glyph_name not in glyph_normalization:
+            normalization = plan_width_normalization(cjk_font["hmtx"][glyph_name], preferred_width)
+            glyph_normalization[glyph_name] = normalization
+        normalized_metrics = cjk_font["hmtx"][glyph_name]
+        normalize_shift_x = 0
+        if normalization is not None:
+            normalization_counts["matched"] += 1
+            normalization_counts[normalization["status"]] += 1
+            normalization_actions.append(build_normalization_action_entry(codepoint, glyph_name, normalization))
+            normalized_metrics = (normalization["final_advance_width"], normalization["final_lsb"])
+            normalize_shift_x = int(normalization["shift_x"])
         if glyph_name not in appended_glyphs:
             if "glyf" in target_font:
-                glyph, metrics = build_inserted_ttf_glyph(cjk_font, glyph_name, transform)
+                glyph, metrics = build_inserted_ttf_glyph(
+                    cjk_font,
+                    glyph_name,
+                    transform,
+                    metrics=normalized_metrics,
+                    normalize_shift_x=normalize_shift_x,
+                )
                 append_ttf_glyph(target_font, glyph_name, glyph, metrics)
             else:
-                pen, metrics = build_inserted_cff_charstring(cjk_font, glyph_name, transform)
+                pen, metrics = build_inserted_cff_charstring(
+                    cjk_font,
+                    glyph_name,
+                    transform,
+                    metrics=normalized_metrics,
+                    normalize_shift_x=normalize_shift_x,
+                )
                 append_cff_glyph(target_font, glyph_name, pen, metrics)
             appended_glyphs.add(glyph_name)
         codepoint_to_glyph[codepoint] = glyph_name
     update_unicode_cmaps(target_font, codepoint_to_glyph)
-    return codepoint_to_glyph
+    return codepoint_to_glyph, normalization_counts, normalization_actions
 
 
 def build_static_report(
@@ -362,9 +438,12 @@ def build_static_report(
     target_postscript_name: str | None,
     cjk_axis: dict[str, float],
     transform,
+    normalize_width_rules: list[dict[str, object]],
     intervals: list[tuple[int, int]],
     counts: dict[str, int],
     codepoint_to_glyph: dict[int, str],
+    normalization_counts: dict[str, int],
+    normalization_actions: list[dict[str, object]],
     cache_info: dict[str, object],
     companion_ttf_output: Path | None,
 ) -> dict:
@@ -384,11 +463,16 @@ def build_static_report(
             "target_postscript_name": target_postscript_name,
             "cjk_axis": cjk_axis,
             "cjk_transform": tuple(transform) if transform is not None else None,
+            "normalize_width": serialize_normalize_width_rules(normalize_width_rules) or None,
             "cjk_cache": cache_info,
         },
         "interval_count": len(intervals),
         "counts": counts,
         "inserted": inserted,
+        "normalize_width": {
+            "counts": normalization_counts,
+            "actions": normalization_actions,
+        },
         "notes": {
             "layout_policy": "Target layout tables are preserved and are not augmented for inserted glyphs.",
             "outline_policy": "Selected CJK glyphs are overlap-flattened before insertion into the static target.",
@@ -549,6 +633,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help='Optional affine transform for inserted CJK glyphs as "a,b,c,d,e,f".',
     )
+    parser.add_argument(
+        "--normalize-width",
+        default=None,
+        help="Optional JSON normalize_width configuration forwarded from the profile wrapper.",
+    )
     return parser.parse_args()
 
 
@@ -571,6 +660,7 @@ def main() -> None:
     intervals = parse_unicode_blocks(blocks_path)
     cjk_axis = parse_axis_settings(args.cjk_axis)
     transform = parse_transformation(args.cjk_transform)
+    normalize_width_rules = parse_normalize_width_json(args.normalize_width)
     use_replacement_naming = validate_replacement_args(args)
 
     target_font = TTFont(target_path)
@@ -594,7 +684,17 @@ def main() -> None:
 
     merge_start = monotonic()
     log_status("Start merging glyphs into static target...")
-    codepoint_to_glyph = merge_candidates_into_target(target_font, cjk_font, candidates, transform)
+    codepoint_to_glyph, normalization_counts, normalization_actions = merge_candidates_into_target(
+        target_font,
+        cjk_font,
+        candidates,
+        transform,
+        normalize_width_rules,
+    )
+    if normalize_width_rules:
+        log_status(f"normalize_width matched: {normalization_counts['matched']}")
+        log_status(f"normalize_width processed: {normalization_counts['processed']}")
+        log_status(f"normalize_width skipped: {normalization_counts['skipped']}")
     log_status(f"Finished merging glyphs into static target ({format_elapsed(monotonic() - merge_start)} elapsed)")
 
     save_start = monotonic()
@@ -637,9 +737,12 @@ def main() -> None:
         target_postscript_name=args.target_postscript_name,
         cjk_axis=cjk_axis,
         transform=transform,
+        normalize_width_rules=normalize_width_rules,
         intervals=intervals,
         counts=counts,
         codepoint_to_glyph=codepoint_to_glyph,
+        normalization_counts=normalization_counts,
+        normalization_actions=normalization_actions,
         cache_info=cache_info,
         companion_ttf_output=companion_ttf_output_path,
     )

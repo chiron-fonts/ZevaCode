@@ -21,5 +21,11 @@ files:
 variants:
   S:
     master_config: master_config/monaspace-s.json
+    normalize_width:
+      - codepoints: [[A960, A97F], [AC00, D7AF], [D7B0, D7FF]]
+        width: 1000
   B:
     master_config: master_config/monaspace-b.json
+    normalize_width:
+      - codepoints: [[A960, A97F], [AC00, D7AF], [D7B0, D7FF]]
+        width: 1236

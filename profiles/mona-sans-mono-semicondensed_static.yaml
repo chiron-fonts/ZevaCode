@@ -16,6 +16,9 @@ variants:
   B:
     # Monospace glyph width is 504.
     cjk_axis: "wdth=100,IDSP=8"
+    normalize_width:
+      - codepoints: [[A960, A97F], [AC00, D7AF], [D7B0, D7FF]]
+        width: 1008
 weights:
   extralight:
     cjk_axis_override: "wght=200"

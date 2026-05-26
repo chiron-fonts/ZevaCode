@@ -15,8 +15,14 @@ variants:
     cjk_high: "wght=800,wdth=100,IDSP=0"
     italic:
       cjk_transform: "1,0,0.15838,1,0,0"
+    normalize_width:
+      - codepoints: [[A960, A97F], [AC00, D7AF], [D7B0, D7FF]]
+        width: 1000
   B:
     cjk_low: "wght=200,wdth=110,IDSP=100"
     cjk_high: "wght=800,wdth=110,IDSP=100"
     italic:
       cjk_transform: "1,0,0.15838,1,0,0"
+    normalize_width:
+      - codepoints: [[A960, A97F], [AC00, D7AF], [D7B0, D7FF]]
+        width: 1200

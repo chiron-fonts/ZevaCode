@@ -58,9 +58,15 @@ variants:
     cjk_transform: "2,0,0,2,0,5"
     italic:
       cjk_transform: "2,0,0.31676,2,0,5"
+    normalize_width:
+      - codepoints: [[A960, A97F], [AC00, D7AF], [D7B0, D7FF]]
+        width: 1000
   B:
     cjk_low: "wght=200,wdth=105,IDSP=150"
     cjk_high: "wght=650,wdth=105,IDSP=150"
     cjk_transform: "2,0,0,2,0,5"
     italic:
       cjk_transform: "2,0,0.31676,2,0,5"
+    normalize_width:
+      - codepoints: [[A960, A97F], [AC00, D7AF], [D7B0, D7FF]]
+        width: 1200
