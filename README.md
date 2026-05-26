@@ -4,19 +4,21 @@ ZevCode TC
 ZevCode TC 是一款以現有等寬西文字型為基礎，再嵌入[宙黑體 ZevHeiTC-N](https://github.com/chiron-fonts/zev-hei-tc) CJK
 字形的衍生字體，適合用於記事本、終端機/命令行、IDE 等環境。
 
-專案目標是在原始等寬字型之上補上中文字元，毋須 Fallback 字型或額外設定即可達到中英混排效果。
+專案目標是在原始等寬字型之上補上中文字元，不必設定 fallback。
 
-## 字型特色
+## 特色
 
 - 以等寬程式字型為基礎，保留原有的字形風格與 OpenType 功能。
-- 嵌入[宙黑體 ZevHeiTC-N](https://github.com/chiron-fonts/zev-hei-tc)的 CJK
-  字形和其他全形符號。宙黑體是[昭源黑體](https://github.com/chiron-fonts/chiron-hei-hk)的改作，其 N
-  版將原有的飾筆簡化，並移除「口」「山」一類部件底部的襯腳，使字形更簡潔、現代。
+- 嵌入[宙黑體 ZevHeiTC-N](https://github.com/chiron-fonts/zev-hei-tc) 的 CJK
+  字形和其他全形符號。宙黑體是[昭源黑體](https://github.com/chiron-fonts/chiron-hei-hk)的改作，將原有的飾筆簡化，N
+  版並移除「口」「山」一類部件底部的襯腳，使字形更簡潔、現代。
 - 服務對象為繁體/正體中文使用者，但也包含簡體中文、日文、韓文等 CJK 字形。
 
-## 詳情
+## 下載
 
-### 命名
+請前往 [Releases 頁面](https://github.com/chiron-fonts/ZevCode-TC/releases)下載最新版本的字型。
+
+## 命名
 
 字體名稱採用 `ZevCodeTC-<家族代碼>-<變體>` 的格式。
 
@@ -24,7 +26,7 @@ ZevCode TC 是一款以現有等寬西文字型為基礎，再嵌入[宙黑體 Z
 
 以下會就字體的家族代碼和變體作一解説。為方便説明，雖然來源字型涵蓋拉丁字母、數字、標點符號等，而用作嵌入用的宙黑體除了中日韓字形還包括符號，以下仍以「英文字型」與「中文字型」來分別代指兩者。
 
-### 變體
+## 變體
 
 ZevCode TC 的變體主要分別在於對 CJK 字形的寬度調整上。
 
@@ -33,33 +35,34 @@ ZevCode TC 的變體主要分別在於對 CJK 字形的寬度調整上。
 | `S` | 標準版，使用原來中文字體的 CJK 字體寬度 |
 | `B` | 「盡力而為」版                |
 
-所謂的「盡力而為 (best effort)」，指的是有限度地調整原來中文字形的寬度，使之等同英文等寬字型的兩倍寬度，從而在視覺上（尤其在多行情況下）達到對齊效果。
+所謂的「盡力而為 (best effort)」，指的是有限度地調整原字體字圖的寬度，使之等同英文等寬字型的兩倍寬度，從而在視覺上（尤其在多行情況下）達到對齊效果。
 
 為此，B 版在嵌入宙黑體字形時會做以下調整:
 
 - 將字距調整至上游等寬字型的 2 倍寬度（以中文字形為基準）
 - 按需要將原來字寬略為加寬，避免字與字之間空白太多
+- 將韓文字形的字寬調整至與中文/日文字形相同
 
 而所謂「有限度」，其意思是：
 
-- 宙黑體源自思源黑體。思源黑體的一些字形（例如韓文字形）本身就比中文/日文字形窄。以中文字形為基準加寬後，韓文字形字寬仍會小於中文/日文字形。
+- 宙黑體源自昭源黑體/思源黑體，本身不是等寬字形。「對齊」調整以中文字形字寬為基準按比例放大，除韓文字形外，其他字圖如果跟中日字形的字寬不同，則不會再處理。
 
-### 來源字型
+## 來源字型
 
 ZevCode TC 以多款等寬英文字型為基礎，再嵌入中文字體部份字碼的字圖，每款來源字型都會對應一個家族代碼。
 
-由於每款基礎字型的字形風格、OpenType 功能等特性各有不同，詳情請參閲該字型的官方説明。
+每款基礎字型的字形風格、OpenType 功能等特性各有不同，詳情請參閲該字型的官方説明。
 
-#### JetBrains Mono
+### JetBrains Mono ([網頁](https://www.jetbrains.com/lp/mono/)) ([Github](https://github.com/JetBrains/JetBrainsMono/))
 
-專案地址: https://www.jetbrains.com/lp/mono/, https://github.com/JetBrains/JetBrainsMono/
+JetBrains 為開發者設計的等寬字型。
 
 ZevCode 衍生字型及其家族代碼：
 
 | 原字體名稱             | ZevCode 家族代碼 | 備註                                                      |
 |-------------------|--------------|---------------------------------------------------------|
-| JetBrains Mono    | JBM          |                                                         |
-| JetBrains Mono NL | JBMNL        | 屬於 JetBrains Mono 的 “no ligatures” 版本，只在 Static Font 提供 |
+| JetBrains Mono    | `JBM`        |                                                         |
+| JetBrains Mono NL | `JBMNL`      | 屬於 JetBrains Mono 的 “no ligatures” 版本，只在 Static Font 提供 |
 
 提供格式：
 
@@ -68,18 +71,16 @@ ZevCode 衍生字型及其家族代碼：
 | Variable Font | 有      |
 | Static Font   | TTF 格式 |
 
-#### Cascadia Code
+### Cascadia Code ([Github](https://github.com/microsoft/cascadia-code/))
 
-| &nbsp;    | &nbsp;                                      |
-|-----------|---------------------------------------------|
-| Github 網址 | https://github.com/microsoft/cascadia-code/ |
+Microsoft 製作的等寬字型，是目前 Windows Terminal 和 Visual Studio 的預設字型。
 
 ZevCode 衍生字型及其家族代碼：
 
 | 原字體名稱         | ZevCode 家族代碼 | 備註                                  |
 |---------------|--------------|-------------------------------------|
-| Cascadia Code | CCD          | 標準版                                 |
-| Cascadia Mono | CMD          | 即 Cascadia Code 的 “no ligatures” 版本 |
+| Cascadia Code | `CCD`        | 標準版                                 |
+| Cascadia Mono | `CMD`        | 即 Cascadia Code 的 “no ligatures” 版本 |
 
 提供格式：
 
@@ -88,35 +89,35 @@ ZevCode 衍生字型及其家族代碼：
 | Variable Font | 無         |
 | Static Font   | OTF 及 TTF |
 
-#### Mona Sans Mono
+### Mona Sans Mono ([網頁](https://github.com/mona-sans)) ([Github](https://github.com/github/mona-sans/))
 
-專案地址: https://github.com/github/mona-sans/
+Github 製作，與 Mona Sans 搭配的等寬字型。
 
 ZevCode 衍生字型及其家族代碼：
 
 | 原字體名稱          | ZevCode 家族代碼 | 備註 |
 |----------------|--------------|----|
-| Mona Sans Mono | MSM          |    |
+| Mona Sans Mono | `MSM`        |    |
 
 Static font 提供 OTF 與 TTF 兩種格式。
 
-| 字型格式          | 狀況                                    |
-|---------------|---------------------------------------|
-| Variable Font | 無                                     |
+| 字型格式          | 狀況                            |
+|---------------|-------------------------------|
+| Variable Font | 無                             |
 | Static Font   | OTF 及 TTF，並有 SemiCondensed 寬度 |
 
 按：SemiCondensed 字寬幾乎已是中文字形的一半，因此只提供 B 版。
 
-#### Monaspace
+### Monaspace ([網頁](https://monaspace.githubnext.com/)) ([Github](https://github.com/githubnext/monaspace))
 
-專案地址: https://github.com/githubnext/monaspace, https://monaspace.githubnext.com/
+由 Github 的 GitHub Next 團隊製作的等寬字型，原字體共有 Neon、Argon、Xenon、Radon 四種風格。
 
 ZevCode 衍生字型及其家族代碼：
 
-| 字體名稱            | 家族代碼 | 備註                    |
-|-----------------|------|-----------------------|
-| Monaspace Argon | GMA  | Neo-grotesque sans 風格 |
-| Monaspace Neon  | GMN  | Humanist sans 風格      |
+| 字體名稱            | 家族代碼  | 備註                    |
+|-----------------|-------|-----------------------|
+| Monaspace Argon | `GMA` | Neo-grotesque sans 風格 |
+| Monaspace Neon  | `GMN` | Humanist sans 風格      |
 
 Static font 提供 OTF 與 TTF 兩種格式。
 
@@ -134,17 +135,7 @@ ZevCode TC 是以原始字型為基礎，將 ZevHei TC (N 版) 的 CJK 字形嵌
 來自 ZevHei TC 的字碼，請參閲 `assets/unicode_blocks.txt`。若一個字碼同時存在於原始字型與 ZevHei TC 中，則會優先使用原始字型的字形。
 
 嵌入方式為純粹將 ZevHei TC 的字圖複製到原始字型對應的 Unicode 字碼，不會嵌入中文字體的 CCMP、GSUB、GPOS 等 OpenType 功能，KERN
-也不會做額外調整。這一般不會影響中日韓字形的顯示，但也意味著在某些特定情況下（例如須靠兩個字符組成的合字）的顯示可能會出現異常。
-
-## 發布內容
-
-本倉庫通常會包含：
-
-1. 可變字型 `.ttf`
-2. 靜態字型家族壓縮包（例如 `Static_OTF.zip`、`Static_TTF.zip`）
-
-如果你只想安裝單一字型，通常直接下載對應家族／變體即可；如果你偏好在支援 variable font 的環境使用較少檔案數，也可以選擇
-variable 版本。
+也不會做額外調整。這一般不會影響中日韓字形的顯示，但也意味著在某些特定情況下（例如須靠兩個字符組成的合字）的顯示可能會出現異常，另外字體也不支援直排。
 
 ## 備註
 
