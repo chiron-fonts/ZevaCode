@@ -64,10 +64,10 @@ ZevaCode 衍生字型及其家族代碼：
 
 提供格式：
 
-| &nbsp;        | &nbsp; |
-|---------------|--------|
-| Variable Font | 有      |
-| Static Font   | TTF 格式 |
+| &nbsp;        | &nbsp; | 下載 ZIP 檔案名稱                                                                          |
+|---------------|--------|--------------------------------------------------------------------------------------| 
+| Variable Font | 有      | `ZevaCode-JetMono-Variable.zip`                                                      |
+| Static Font   | TTF    | 正常版: `ZevaCode-JetMono-Static_TTF.zip` <br>NL 版: `ZevaCode-JetMonoNL-Static_TTF.zip` |
 
 ### Cascadia Code ([Github](https://github.com/microsoft/cascadia-code/))
 
@@ -82,10 +82,10 @@ ZevaCode 衍生字型及其家族代碼：
 
 提供格式：
 
-| &nbsp;        | &nbsp;    |
-|---------------|-----------|
-| Variable Font | 有         |
-| Static Font   | OTF 及 TTF |
+| &nbsp;        | &nbsp;    | 下載 ZIP 檔案名稱                                                                                                                                                                                                  |
+|---------------|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Variable Font | 有         | `ZevaCode-CasCode-Variable.zip` (包含 CasCode 與 CasMono 兩個家族)                                                                                                                                                  |
+| Static Font   | OTF 及 TTF | CasCode: `ZevaCode-CasCodeNF-Static_(OTF/TTF).zip`, (NF 版) `ZevaCode-CasCodeNF-Static_(OTF/TTF).zip`  <br>CasMono: `ZevaCode-CasMono-Static_(OTF/TTF).zip`, (NF 版) `ZevaCode-CasMonoNF-Static_(OTF/TTF).zip` |
 
 ### Mona Sans Mono ([網頁](https://github.com/mona-sans)) ([Github](https://github.com/github/mona-sans/))
 
@@ -97,12 +97,12 @@ ZevaCode 衍生字型及其家族代碼：
 |----------------|---------------|----|
 | Mona Sans Mono | `Gima`        |    |
 
-Static font 提供 OTF 與 TTF 兩種格式。
+提供格式：
 
-| 字型格式          | 狀況                            |
-|---------------|-------------------------------|
-| Variable Font | 無                             |
-| Static Font   | OTF 及 TTF，並有 SemiCondensed 寬度 |
+| 字型格式          | 狀況                            | 下載 ZIP 檔案名稱                                                                                                   |
+|---------------|-------------------------------|---------------------------------------------------------------------------------------------------------------|
+| Variable Font | 無                             |                                                                                                               |
+| Static Font   | OTF 及 TTF，並有 SemiCondensed 寬度 | `ZevaCode-Gima-Static_(OTF/TTF).zip` <br>SemiCondensed 字寬: `ZevaCode-Gima-SemiCondensed-Static_(OTF/TTF).zip` | 
 
 按：SemiCondensed 字寬幾乎已是中文字形的一半，因此只提供 Al 版。
 
@@ -117,12 +117,12 @@ ZevaCode 衍生字型及其家族代碼：
 | Monaspace Argon | `GimaspaceArg` | Neo-grotesque sans 風格 |
 | Monaspace Neon  | `GimaspaceNeo` | Humanist sans 風格      |
 
-Static font 提供 OTF 與 TTF 兩種格式。
+提供格式：
 
-| 字型格式          | 狀況                   |
-|---------------|----------------------|
-| Variable Font | 有（中文字對齊僅於 100% 字寬有效） |
-| Static Font   | OTF 及 TTF（僅提供正常寬度版本） |
+| 字型格式          | 狀況                   | 下載 ZIP 檔案名稱                                                                                                                                                                                                                             |
+|---------------|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Variable Font | 有（中文字對齊僅於 100% 字寬有效） | `ZevaCode-Gimaspace-Variable.zip` (包含 GimaspaceArg 及 GimaspaceNeo)                                                                                                                                                                      |                                                             
+| Static Font   | OTF 及 TTF（僅提供正常寬度版本） | GimaspaceArg: `ZevaCode-GimaspaceArg-Static_(OTF/TTF).zip`, (NF 版) `ZevaCode-GimaspaceArgNF-Static_(OTF/TTF).zip` <br>GimaspaceNeo: `ZevaCode-GimaspaceNeo-Static_(OTF/TTF).zip`, (NF 版) `ZevaCode-GimaspaceNeoNF-Static_(OTF/TTF).zip` |
 
 ## CJK 嵌入說明
 
